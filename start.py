@@ -130,8 +130,20 @@ if not QUIET:
     print()
 
 
+def wait_ready(port, timeout=30):
+    """轮询端口，等 uvicorn 真的开始监听再开浏览器，免得打开是「拒绝连接」。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(0.4)
+    return False
+
+
 def open_browser_later():
-    time.sleep(1.8)          # 等服务真起来，免得浏览器打开是「拒绝连接」
+    wait_ready(port)
     try:
         webbrowser.open(url_for("127.0.0.1", port))
     except Exception:
