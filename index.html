@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>识稼日报 · 作物病害智能识别</title>
+<script src="lib/marked.min.js"></script>
+<script src="lib/html2canvas.min.js"></script>
+<script src="lib/three.min.js"></script>
+<script src="lib/GLTFLoader.js"></script>
+<script src="lib/disease3d.js?v=20261116c"></script>
+<style>
+/* 标题字体已本地化，录视频时不再依赖外网 */
+@font-face {
+    font-family: "ZCOOL XiaoWei";
+    src: url("./fonts/zcool-xiaowei.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --ink: #241f18;          /* 油墨色，不用纯黑 */
+    --ink-soft: #5d5548;
+    --paper: #f2ebd9;        /* 报纸纸色 */
+    --paper-deep: #e8dfc8;   /* 内层纸色 */
+    --line: #b3a789;         /* 栏线 */
+    --red: #8B0000;          /* 套红 */
+    --old-yellow: #cdb98c;
+}
+
+body {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    background-color: #e9e0ca;
+    background-image:
+        /* 纸张噪点 */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.11'/%3E%3C/svg%3E"),
+        /* 做旧暗斑 */
+        radial-gradient(ellipse at 15% 8%, rgba(150,118,66,0.16) 0%, transparent 52%),
+        radial-gradient(ellipse at 88% 92%, rgba(120,92,50,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 70% 20%, rgba(160,132,80,0.10) 0%, transparent 45%);
+    color: var(--ink);
+    line-height: 1.85;
+    min-height: 100vh;
+}
+
+/* ================= 报头 ================= */
+/* ===== 铅字感：宋体正文略松字距，标题补一点笔画厚度 ===== */
+body { letter-spacing: 0.4px; }
+
+/* 栏目标题用中宋，比正文宋体厚一档，像报纸的黑线小标 */
+.section-title,
+.headline h2,
+.hourly-title,
+.result-placeholder .rp-title,
+.article h2,
+.article h3,
+#chat-content h2,
+#chat-content h3 {
+    font-family: "STZhongsong", "Songti SC", "SimSun", serif;
+    -webkit-text-stroke: 0.5px currentColor;
+}
+.hourly-item .hour-label {
+    font-variant-numeric: tabular-nums;
+}
+
+.masthead {
+    padding: 22px 40px 2px;
+    text-align: center;
+    position: relative;
+    max-width: 1240px;
+    margin: 0 auto;
+    /* 背景只在内容区绘制，左右各让出 40px，与下方框对齐 */
+    background: linear-gradient(180deg, rgba(255, 252, 242, 0.42) 0%, rgba(255, 252, 242, 0.10) 55%, transparent 100%);
+    background-size: calc(100% - 80px) 100%;
+    background-position: center top;
+    background-repeat: no-repeat;
+}
+/* 底线与下方内容框同宽：左右各让出 40px 内边距 */
+.masthead::after {
+    content: '';
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 0;
+    border-bottom: 4px double var(--ink);
+}
+.masthead .kicker {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 3px;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+}
+.masthead .kicker .kicker-mid { letter-spacing: 5px; }
+.masthead h1 {
+    font-family: "ZCOOL XiaoWei", "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+    font-size: 60px;
+    font-weight: 900;
+    letter-spacing: 12px;
+    line-height: 1;
+    color: var(--ink);
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.6), -1px -1px 0 rgba(120,95,55,0.18);
+}
+.masthead .slogan {
+    font-size: 14px;
+    color: #6b6355;
+    margin-top: 9px;
+    letter-spacing: 5px;
+}
+
+/* ===== 二十四节气刻度尺：本报专属标记，别处不会有 ===== */
+.term-ruler {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 9px 2px 7px;
+    margin-top: -1px;
+}
+.term-ruler .term {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    font-size: 10.5px;
+    line-height: 1.2;
+    letter-spacing: 0;
+    white-space: nowrap;
+    color: var(--ink-soft);
+    opacity: 0.42;
+    padding-bottom: 6px;
+}
+.term-ruler .term::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 1px;
+    height: 4px;
+    background: var(--line);
+    transform: translateX(-50%);
+}
+.term-ruler .term.now {
+    opacity: 1;
+    color: var(--red);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+.term-ruler .term.now::before {
+    width: 10px;
+    height: 3px;
+    background: var(--red);
+    border-radius: 1px;
+}
+
+/* ===== 印章：品牌记号，报头与结果区共用同一套形态 ===== */
+.seal-mast {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    transform: rotate(-7deg);
+    vertical-align: 14px;
+    margin-left: 8px;
+    background: rgba(139, 0, 0, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(139, 0, 0, 0.3);
+}
+.seal-result {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    width: 62px;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    background: rgba(250, 245, 232, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(139, 0, 0, 0.28);
+    opacity: 0;
+    transform: scale(1.7) rotate(-22deg);
+    pointer-events: none;
+    z-index: 3;
+}
+.seal-result.stamped {
+    animation: stampIn 0.46s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+@keyframes stampIn {
+    0% {
+        opacity: 0;
+        transform: scale(1.7) rotate(-22deg);
+        box-shadow: inset 0 0 0 1px rgba(139,0,0,0.28), 0 0 0 0 rgba(139,0,0,0.22);
+    }
+    42% {
+        opacity: 1;
+        transform: scale(0.93) rotate(-7deg);
+        box-shadow: inset 0 0 0 1px rgba(139,0,0,0.28), 0 0 0 11px rgba(139,0,0,0.045);
+    }
+    72% {
+        transform: scale(1.02) rotate(-8deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(-8deg);
+        box-shadow: inset 0 0 0 1px rgba(139,0,0,0.28), 0 0 0 2px rgba(139,0,0,0);
+    }
+}
+
+/* 本期专题 */
+.topic { margin: 9px auto 14px; }
+.topic-tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--red);
+    margin-bottom: 10px;
+}
+.topic-tag::before,
+.topic-tag::after {
+    content: '';
+    width: 38px;
+    height: 1px;
+    background: var(--red);
+    opacity: 0.55;
+}
+.topic-title {
+    font-family: "ZCOOL XiaoWei", "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 7px;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 7px;
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.6), -1px -1px 0 rgba(120,95,55,0.16);
+}
+.topic-sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 4px;
+}
+.masthead .rule-thin { display: none; }
+.masthead .double-line {
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 6px 0;
+    margin-top: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--ink-soft);
+    letter-spacing: 2px;
+}
+
+/* ================= 导航 ================= */
+.nav-bar {
+    padding: 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(rgba(233, 224, 202, 0.97), rgba(233, 224, 202, 0.97));
+    background-size: calc(100% - 80px) 100%;
+    background-position: center top;
+    background-repeat: no-repeat;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    max-width: 1240px;
+    margin: 0 auto;
+}
+.nav-bar::after {
+    content: '';
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 0;
+    border-bottom: 3px double var(--ink);
+    pointer-events: none;
+}
+.nav-container { max-width: 1160px; margin: 0 auto; display: flex; justify-content: center; }
+.nav-links { display: flex; }
+.nav-links a {
+    display: inline-block;
+    padding: 13px 38px;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    cursor: pointer;
+    border-left: 1px solid #c9bca0;
+    transition: all 0.22s;
+}
+.nav-links a:last-child { border-right: 1px solid #c9bca0; }
+.nav-links a:hover { background: rgba(36,31,24,0.06); }
+.nav-links a.active { background: var(--ink); color: var(--paper); }
+
+/* ================= 主体 ================= */
+.container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 18px 40px 60px;
+}
+
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.45s ease; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 头条 */
+.headline {
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 3px double var(--ink);
+}
+.headline h2 {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: 7px;
+    margin-bottom: 6px;
+}
+.headline .byline {
+    font-size: 14px;
+    color: var(--ink-soft);
+    letter-spacing: 4px;
+}
+.headline .ornament {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--line);
+    letter-spacing: 6px;
+}
+
+/* ================= 三栏资讯 ================= */
+.news-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 2px solid var(--ink);
+    margin-bottom: 12px;
+    background: var(--paper-deep);
+    box-shadow: 0 5px 18px rgba(60,45,25,0.10);
+}
+.news-item {
+    padding: 9px 16px;
+    border-right: 1px solid var(--line);
+    transition: background 0.25s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.news-item:hover { background: rgba(250, 243, 224, 0.45); }
+.news-item:last-child { border-right: none; }
+.news-item h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: 3px;
+    margin-bottom: 5px;
+    text-align: center;
+    position: relative;
+}
+.news-item h3::before,
+.news-item h3::after {
+    content: '◆';
+    color: var(--red);
+    font-size: 10px;
+    vertical-align: middle;
+    margin: 0 8px;
+}
+.news-item h3 .line {
+    display: none;
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 1px;
+    background: var(--ink);
+}
+.news-item .big {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 26px;
+    text-align: center;
+    margin-bottom: 2px;
+    letter-spacing: 1px;
+}
+.news-item .sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.6;
+}
+.news-item .now-tip {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.6;
+    text-align: center;
+    padding: 0 4px;
+    margin: auto 0;
+}
+/* 前两栏内容垂直居中，与农事栏视觉对齐 */
+.news-item .big { margin-top: auto; }
+.news-item .sub:last-child { margin-bottom: auto; }
+
+.news-item .now-tip .tag {
+    color: var(--red);
+    font-weight: 700;
+}
+
+/* ================= 逐时农事简报 ================= */
+.hourly-section {
+    border: 2px solid var(--ink);
+    background: var(--paper-deep);
+    margin-bottom: 12px;
+    box-shadow: 0 5px 18px rgba(60,45,25,0.10);
+}
+.hourly-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 20px;
+    border-bottom: 1px solid var(--ink);
+    background: rgba(36,31,24,0.05);
+}
+.hourly-title {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+.hourly-title::before { content: '❖ '; color: var(--red); }
+.hourly-update { font-size: 12px; color: var(--ink-soft); letter-spacing: 1px; }
+.hourly-right { display: flex; align-items: center; gap: 10px; }
+.hourly-toggle {
+    padding: 2px 9px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.hourly-toggle:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.hourly-summary {
+    padding: 9px 20px 10px;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: 1px;
+    border-top: 1px dashed var(--line);
+}
+.hourly-summary .tag { color: var(--red); font-weight: 700; }
+.hourly-list.collapsed { display: none; }
+
+.hourly-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+.hourly-item {
+    padding: 12px 10px;
+    border-right: 1px solid var(--line);
+    text-align: center;
+    transition: background 0.25s;
+}
+.hourly-item:last-child { border-right: none; }
+.hourly-item:hover { background: rgba(255,255,255,0.32); }
+.hourly-item .hour-label {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.hourly-item .hour-weather {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+.hourly-item .hour-tip {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.8;
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+}
+.hourly-item.is-now {
+    background: rgba(139,0,0,0.06);
+}
+.hourly-item.is-now .hour-label { color: var(--red); }
+
+/* ================= 主区域 ================= */
+/* ================= 病相立体图 ================= */
+.bx3d-box {
+    margin-top: 20px;
+    padding: 16px 18px 14px;
+    border: 2px solid var(--line);
+    background: var(--paper);
+}
+.bx3d-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--ink);
+}
+.bx3d-title {
+    font-size: 15px;
+    letter-spacing: 6px;
+    font-family: "STZhongsong", "Songti SC", "SimSun";
+    color: var(--ink);
+}
+.bx3d-sub {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    white-space: nowrap;
+}
+.bx3d-body {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.95s cubic-bezier(0.22, 0.9, 0.3, 1), opacity 0.6s ease 0.1s;
+}
+.bx3d-box.revealed .bx3d-body {
+    max-height: 660px;
+    opacity: 1;
+}
+.bx3d-stage {
+    position: relative;
+    height: 340px;
+    border: 1px solid var(--line);
+    background:
+        radial-gradient(circle at 50% 42%, #f8f1df 0%, #eee3c9 68%, #e2d6b8 100%);
+    overflow: hidden;
+    touch-action: none;
+    cursor: grab;
+}
+.bx3d-stage canvas { display: block; }
+.bx3d-foot { margin-top: 10px; }
+.bx3d-name {
+    font-size: 14.5px;
+    letter-spacing: 3px;
+    color: var(--ink);
+    font-family: "STZhongsong", "Songti SC", "SimSun";
+}
+.bx3d-note {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.75;
+    color: var(--ink-soft);
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+}
+.bx3d-hint {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    color: rgba(93, 85, 72, 0.75);
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    pointer-events: none;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.45fr;
+    border: 2px solid var(--ink);
+    background: var(--paper-deep);
+    box-shadow: 0 5px 18px rgba(60,45,25,0.10);
+}
+.main-left, .main-right { padding: 28px 26px; }
+.main-left { border-right: 1px solid var(--line); }
+
+.section-title {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 23px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 3px double var(--ink);
+    letter-spacing: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.section-title::before {
+    content: '';
+    width: 9px; height: 9px;
+    background: var(--red);
+    display: inline-block;
+    transform: rotate(45deg);
+}
+
+/* ================= 上传区（不透明底框 + 图片内置） ================= */
+/* 作物选择：报纸风格的窄条下拉 */
+.crop-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 14px;
+}
+.crop-label {
+    flex: 0 0 auto;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--ink-soft);
+}
+.crop-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 28px 8px 10px;
+    border: 2px solid var(--line);
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23241f18' stroke-width='1.7' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 6px;
+    font-size: 14.5px;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    color: var(--ink);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.crop-select:focus { border-color: var(--ink); }
+
+.upload-area {
+    position: relative;
+    width: 100%;
+    padding: 10px;
+    background: #e6dcc2;
+    border: 2px solid var(--ink);
+    box-shadow: inset 0 0 0 1px #cabfa2, 0 4px 14px rgba(60,45,25,0.12);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.upload-area:hover {
+    background: #e1d6b7;
+    box-shadow: inset 0 0 0 1px #cabfa2, 0 6px 20px rgba(60,45,25,0.18);
+}
+.upload-area.drag-over {
+    background: #ead9b6;
+    border-color: var(--red);
+    box-shadow: inset 0 0 0 2px var(--red), 0 0 0 4px rgba(139,0,0,0.10);
+}
+.upload-inner {
+    position: relative;
+    min-height: 360px;
+    border: 2px dashed #9d9072;
+    background: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+.upload-area:hover .upload-inner { border-color: #6d6250; }
+.upload-area.drag-over .upload-inner { border-color: var(--red); background-color: #fbf4e1; }
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 30px 20px;
+    text-align: center;
+    position: absolute;
+    inset: 0;
+}
+.upload-icon { font-size: 46px; line-height: 1; filter: grayscale(0.2); }
+.upload-tip { font-size: 16px; color: var(--ink-soft); letter-spacing: 2px; }
+
+#preview-img {
+    display: none;
+    width: 100%;
+    height: 360px;
+    object-fit: contain;
+    background: #f3ecd8;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+input[type="file"] { display: none; }
+
+/* ================= 按钮 ================= */
+.btn {
+    padding: 11px 28px;
+    border: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.22s;
+    box-shadow: 0 3px 0 rgba(36,31,24,0.25);
+}
+.btn:hover {
+    background: var(--paper);
+    color: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 rgba(36,31,24,0.18);
+}
+.btn:active { transform: translateY(1px); box-shadow: 0 2px 0 rgba(36,31,24,0.28); }
+.btn-outline { background: transparent; color: var(--ink); box-shadow: none; }
+.btn-outline:hover { background: var(--ink); color: var(--paper); }
+
+/* ================= 结果区 ================= */
+.tab-bar {
+    display: flex;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 20px;
+}
+.tab-btn {
+    padding: 11px 26px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    color: var(--ink-soft);
+    cursor: pointer;
+    letter-spacing: 4px;
+    border-right: 1px solid var(--line);
+    transition: all 0.2s;
+}
+.tab-btn:hover:not(.active) { background: rgba(36,31,24,0.05); }
+.tab-btn.active { background: var(--ink); color: var(--paper); }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.35s ease; }
+
+#result-content, #chat-content {
+    font-size: 16px;
+    line-height: 2.1;
+    min-height: 300px;
+    color: var(--ink);
+}
+#result-content { position: relative; padding-right: 84px; }
+
+/* ---------- 病情诊断单（报馆表格样式） ---------- */
+
+/* 诊断单底部操作：读一遍 / 存图 */
+.dx-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0 10px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+}
+.dx-act {
+    flex: 0 0 auto;
+    padding: 8px 15px;
+    border: 2px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.dx-act:hover { background: var(--ink); color: var(--paper); }
+.dx-act.is-on {
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--paper);
+    animation: micPulse 1.15s ease-in-out infinite;
+}
+
+/* 手机上存图后显示浮层，方便长按存相册 */
+.img-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,17,13,0.86);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px;
+}
+.img-overlay p {
+    color: var(--paper);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-align: center;
+}
+.img-overlay img {
+    max-width: 92vw;
+    max-height: 72vh;
+    border: 3px solid var(--paper);
+    background: var(--paper);
+}
+.img-overlay button {
+    padding: 8px 20px;
+    border: 2px solid var(--paper);
+    background: transparent;
+    color: var(--paper);
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    cursor: pointer;
+}
+
+.dx-sheet {
+
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 0;
+    font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+}
+.dx-sheet caption {
+    caption-side: top;
+    text-align: left;
+    font-size: 14px;
+    letter-spacing: 6px;
+    color: var(--ink-soft);
+    padding: 0 0 8px 2px;
+    border-bottom: 2px solid var(--ink);
+}
+.dx-sheet th,
+.dx-sheet td {
+    border-bottom: 1px dashed var(--line);
+    padding: 10px 12px;
+    font-size: 15.5px;
+    line-height: 1.75;
+    vertical-align: top;
+}
+.dx-sheet th {
+    width: 96px;
+    text-align: center;
+    color: var(--ink-soft);
+    font-weight: 400;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    border-right: 1px dashed var(--line);
+}
+.dx-sheet td { color: var(--ink); }
+.dx-sheet tr { animation: dxIn 0.34s ease both; }
+@keyframes dxIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: none; }
+}
+.dx-verdict { font-weight: 700; letter-spacing: 2px; }
+.dx-verdict.ok { color: var(--red); }
+.dx-verdict.weak { color: var(--ink-soft); }
+.dx-rx { font-weight: 600; }
+.dx-cand, .dx-retake {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+}
+.dx-block-t {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+}
+.dx-cand ul { list-style: none; margin: 0; padding: 0; }
+.dx-cand li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 14.5px;
+}
+.dx-cand .cn { width: 132px; flex: none; }
+.dx-cand .cbar { flex: 1; height: 3px; background: rgba(36, 31, 24, 0.09); }
+.dx-cand .cbar i { display: block; height: 3px; background: var(--red); opacity: 0.55; }
+.dx-cand .cp {
+    width: 40px;
+    flex: none;
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+.dx-retake p:not(.dx-block-t) {
+    font-size: 14.5px;
+    line-height: 2;
+    color: var(--ink-soft);
+    margin: 0;
+}
+.dx-sign {
+    margin-top: 16px;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    color: var(--ink-soft);
+    text-align: right;
+    white-space: nowrap;
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+}
+#result-content h2, #result-content h3,
+#chat-content h2, #chat-content h3 {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    color: var(--ink);
+    margin: 18px 0 10px;
+    letter-spacing: 3px;
+    border-left: 3px solid var(--red);
+    padding-left: 10px;
+}
+#result-content strong, #chat-content strong { color: var(--red); }
+#result-content ul, #chat-content ul { padding-left: 22px; }
+
+.cursor { display: inline-block; width: 16px; }
+.cursor::after { content: ''; animation: dots 1s steps(4) infinite; }
+@keyframes dots {
+    0% { content: ''; }
+    25% { content: '。'; }
+    50% { content: '。。'; }
+    75% { content: '。。。'; }
+}
+
+.loading-wrap { display: none; text-align: center; padding: 44px; }
+.loader {
+    width: 30px; height: 30px;
+    border: 3px solid #d5c9a8;
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 15px; color: var(--ink-soft); letter-spacing: 4px; }
+
+.clear-row {
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+.chat-input-area input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 11px 14px;
+    border: 2px solid var(--line);
+    background: var(--paper);
+    font-size: 15px;
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.chat-input-area input:focus { border-color: var(--ink); }
+
+/* 语音输入：麦克风章 */
+.chat-input-area { position: relative; }
+.mic-btn {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 2px solid var(--ink);
+    background: var(--paper-deep);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.mic-btn:hover { background: var(--ink); color: var(--paper); }
+.mic-btn.listening {
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--paper);
+    animation: micPulse 1.15s ease-in-out infinite;
+}
+@keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(139,0,0,0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(139,0,0,0); }
+}
+.mic-btn.mic-off { opacity: 0.42; }
+.mic-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 10px);
+    background: rgba(36,31,24,0.94);
+    color: var(--paper);
+    font-size: 12.5px;
+    line-height: 1.65;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.24s, transform 0.24s;
+    pointer-events: none;
+    z-index: 30;
+}
+.mic-hint.show { opacity: 1; transform: translateY(0); }
+.chat-hint { font-size: 13px; color: var(--ink-soft); margin-top: 12px; letter-spacing: 1px; }
+
+/* ================= 结果区占位 · 署名 · 输入滚动 ================= */
+.result-placeholder {
+    border: 1px dashed #c3b697;
+    background: rgba(255,255,255,0.35);
+    padding: 36px 26px;
+    text-align: center;
+    margin-top: 6px;
+}
+.result-placeholder .rp-title {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 19px;
+    letter-spacing: 5px;
+    color: var(--ink);
+    margin-bottom: 12px;
+}
+.result-placeholder .rp-text {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 2.1;
+    letter-spacing: 1px;
+}
+.tip-warn {
+    padding: 18px 0;
+    font-size: 16px;
+    color: var(--red);
+    letter-spacing: 1px;
+    line-height: 2;
+}
+.model-sign {
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+}
+#chat-content {
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+#chat-content::-webkit-scrollbar { width: 6px; }
+#chat-content::-webkit-scrollbar-thumb { background: #c9bca0; border-radius: 3px; }
+#chat-content::-webkit-scrollbar-track { background: transparent; }
+
+/* ================= 文章页 ================= */
+.article { max-width: 760px; margin: 0 auto; }
+.article h2 {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 34px;
+    text-align: center;
+    margin-bottom: 26px;
+    letter-spacing: 7px;
+    border-bottom: 3px double var(--ink);
+    padding-bottom: 16px;
+}
+.article h3 {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 21px;
+    margin: 30px 0 12px;
+    letter-spacing: 3px;
+    border-left: 4px solid var(--red);
+    padding-left: 12px;
+}
+.article p, .article li { font-size: 16px; line-height: 2.2; color: var(--ink); }
+.article ul { padding-left: 26px; }
+/* 中文首字下沉易错位，改为报纸常规的首行缩进两格 */
+.article .lead { text-indent: 2em; }
+
+/* ================= 移动端 ================= */
+@media (max-width: 900px) {
+    .hourly-list { grid-template-columns: repeat(2, 1fr); }
+    .hourly-item:nth-child(2) { border-right: none; }
+}
+@media (max-width: 768px) {
+    .container { padding: 20px; }
+    .masthead h1 { font-size: 34px; letter-spacing: 6px; }
+    .main-grid { grid-template-columns: 1fr; }
+    .main-left { border-right: none; border-bottom: 1px solid var(--line); }
+    .news-grid { grid-template-columns: 1fr; }
+    .news-item { border-right: none; border-bottom: 1px solid var(--line); }
+    .news-item:last-child { border-bottom: none; }
+    .hourly-list { grid-template-columns: repeat(2, 1fr); }
+    .upload-inner, #preview-img { min-height: 280px; height: 280px; }
+    .nav-links a { padding: 11px 18px; font-size: 15px; letter-spacing: 2px; }
+}
+
+/* ================= 手机竖屏（≤600px）：报头整体重排 ================= */
+@media (max-width: 600px) {
+    .container { padding: 12px; }
+
+    /* 报头要让出同样的内边距，否则底色块和下方框会错位 */
+    .masthead { padding: 16px 12px 2px; background-size: calc(100% - 24px) 100%; }
+    .masthead::after { left: 12px; right: 12px; }
+
+    .masthead .kicker { font-size: 10.5px; letter-spacing: 1px; margin-bottom: 12px; padding-bottom: 6px; }
+    .masthead .kicker .kicker-mid { letter-spacing: 2px; }
+
+    .masthead h1 { font-size: 31px; letter-spacing: 5px; }
+    .seal-mast {
+        width: 32px;
+        height: 32px;
+        border-width: 2px;
+        font-size: 14px;
+        vertical-align: 7px;
+        margin-left: 10px;
+    }
+    .masthead .slogan { font-size: 12px; letter-spacing: 2px; margin-top: 8px; }
+
+    .topic { margin: 6px auto 10px; }
+    .topic-tag { font-size: 10px; letter-spacing: 3px; gap: 8px; margin-bottom: 8px; }
+    .topic-tag::before, .topic-tag::after { width: 22px; }
+    .topic-title { font-size: 22px; letter-spacing: 3px; }
+    .topic-sub { font-size: 11.5px; letter-spacing: 1px; }
+
+    /* 四格栏目条：日期独占一行，下面两格并排 */
+    .masthead .double-line {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px 8px;
+        font-size: 11.5px;
+        letter-spacing: 0.5px;
+        padding: 8px 0;
+    }
+    .masthead .double-line span:nth-child(2) { order: 1; grid-column: 1 / -1; text-align: center; }
+    .masthead .double-line span:nth-child(1) { order: 2; }
+    .masthead .double-line span:nth-child(3) { order: 3; text-align: right; }
+    .masthead .double-line span:nth-child(4) { display: none; }
+
+    /* 节气尺：24 格压到一行之内 */
+    .term-ruler { padding: 7px 0 5px; gap: 0; overflow: hidden; }
+    .term-ruler .term { font-size: 9.5px; padding-bottom: 5px; }
+    .term-ruler .term.now { font-size: 11px; }
+    body { overflow-x: hidden; }
+
+    .nav-bar { padding: 0 12px; background-size: calc(100% - 24px) 100%; }
+    .nav-bar::after { left: 12px; right: 12px; }
+    .nav-links a { padding: 10px 12px; font-size: 14px; letter-spacing: 1px; }
+
+    .hourly-head { flex-wrap: wrap; gap: 6px; }
+    .hourly-right { gap: 8px; }
+    .hourly-title { font-size: 13px; letter-spacing: 1px; }
+    .hourly-update { font-size: 11px; letter-spacing: 0; }
+
+    /* 底部签名与清空按钮：手机上会互相挤压，改成允许换行、按钮不收缩 */
+    .clear-row { flex-wrap: wrap; gap: 8px 12px; margin-top: 16px; }
+    .clear-row .model-sign { flex: 1 1 auto; font-size: 11px; letter-spacing: 0.5px; line-height: 1.7; }
+    .clear-row .btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 7px 14px;
+        font-size: 13px;
+        letter-spacing: 2px;
+    }
+
+    /* 语音输入区：手机上输入框可收缩，按钮不许被挤 */
+    .chat-input-area { gap: 8px; }
+    .chat-input-area input { min-width: 0; font-size: 14px; padding: 9px 10px; }
+    .chat-input-area .btn { flex: 0 0 auto; white-space: nowrap; padding: 9px 12px; font-size: 13px; }
+    .bx3d-stage { height: 248px; }
+    .bx3d-hint { display: none; }
+    .bx3d-box.revealed .bx3d-body { max-height: 560px; }
+    .bx3d-box { padding: 13px 12px 12px; }
+    .bx3d-title { font-size: 13.5px; letter-spacing: 4px; }
+    .bx3d-sub { font-size: 10px; letter-spacing: 0; }
+
+    /* 手机上浏览器不给麦克风，按钮留着只会误导，直接隐掉 */
+    .mic-btn { display: none; }
+    .mic-hint { font-size: 11.5px; padding: 7px 9px; }
+
+    /* 手机上不再为印章留白，否则整块内容会偏左、画面不居中 */
+    #result-content { padding-right: 0; }
+    .dx-sheet th { width: 66px; font-size: 13px; padding: 8px 6px; letter-spacing: 1px; }
+    .dx-sheet td { font-size: 14.5px; padding: 8px 6px; }
+    .seal-result {
+        width: 40px;
+        height: 40px;
+        border-width: 2px;
+        font-size: 13px;
+        top: 0;
+        right: 2px;
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= 报头 ================= -->
+<div class="masthead">
+    <div class="kicker">
+        <span>创刊号</span>
+        <span class="kicker-mid">河北 · 保定</span>
+        <span id="issueNo">第 1 期</span>
+    </div>
+
+    <h1>识稼日报<span class="seal-mast">识稼</span></h1>
+    <div class="slogan">古观稼识病 · AI智辨农殇</div>
+
+    <div class="topic">
+        <div class="topic-tag">本期专题</div>
+        <div class="topic-title">作物病害智能识别</div>
+        <div class="topic-sub">拍照识病 · 农事问答 · 逐时农事</div>
+    </div>
+
+    <div class="double-line">
+        <span>大田作物专刊</span>
+        <span id="todayDate">—</span>
+        <span>小麦 · 玉米</span>
+        <span>AI辅助诊断</span>
+    </div>
+
+    <div class="term-ruler" id="termRuler"></div>
+</div>
+
+<!-- ================= 导航 ================= -->
+<div class="nav-bar">
+    <div class="nav-container">
+        <div class="nav-links">
+            <a class="nav-link active" data-page="home">首页</a>
+            <a class="nav-link" data-page="guide">使用说明</a>
+            <a class="nav-link" data-page="about">关于</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- ================= 首页 ================= -->
+    <div class="page active" id="page-home">
+        <!-- 三栏资讯 -->
+        <div class="news-grid">
+            <div class="news-item">
+                <h3>今日天气<span class="line"></span></h3>
+                <div class="big" id="weatherMain">--℃</div>
+                <div class="sub" id="weatherSub">加载中…</div>
+                <div class="sub" style="margin-top:6px; font-size:12px;" id="weatherExtra"></div>
+            </div>
+            <div class="news-item">
+                <h3>当前节气<span class="line"></span></h3>
+                <div class="big" id="solarMain">--</div>
+                <div class="sub" id="cropStage">--</div>
+            </div>
+            <div class="news-item">
+                <h3>此刻农事<span class="line"></span></h3>
+                <div class="now-tip" id="farmTip">加载中…</div>
+            </div>
+        </div>
+
+        <!-- 逐时农事简报 -->
+        <div class="hourly-section">
+            <div class="hourly-head" id="hourlyHead">
+                <div class="hourly-title">今日逐时农事简报 · 未来四小时</div>
+                <div class="hourly-right">
+                    <div class="hourly-update" id="hourlyUpdate">获取中…</div>
+                    <button class="hourly-toggle" id="hourlyToggle" type="button">展开 ▾</button>
+                </div>
+            </div>
+            <div class="hourly-summary" id="hourlySummary">此刻农事：加载中…</div>
+            <div class="hourly-list collapsed" id="hourlyList">
+                <div class="hourly-item"><div class="hour-label">--时</div><div class="hour-weather">加载中</div><div class="hour-tip">—</div></div>
+            </div>
+        </div>
+
+        <!-- 主区域 -->
+        <div class="main-grid">
+            <div class="main-left">
+                <div class="section-title">病害识别</div>
+                <div class="crop-row">
+                    <label class="crop-label" for="cropSelect">作物</label>
+                    <select class="crop-select" id="cropSelect">
+                        <option value="">不限 · 让 AI 自己认</option>
+                        <optgroup label="粮食作物">
+                            <option>小麦</option>
+                            <option>玉米</option>
+                            <option>水稻</option>
+                            <option>大豆</option>
+                            <option>高粱</option>
+                            <option>谷子</option>
+                            <option>大麦</option>
+                            <option>燕麦</option>
+                            <option>马铃薯</option>
+                            <option>甘薯</option>
+                        </optgroup>
+                        <optgroup label="经济作物">
+                            <option>棉花</option>
+                            <option>花生</option>
+                            <option>油菜</option>
+                            <option>芝麻</option>
+                            <option>向日葵</option>
+                            <option>甘蔗</option>
+                            <option>甜菜</option>
+                            <option>烟草</option>
+                        </optgroup>
+                        <optgroup label="蔬菜">
+                            <option>番茄</option>
+                            <option>黄瓜</option>
+                            <option>辣椒</option>
+                            <option>茄子</option>
+                            <option>白菜</option>
+                            <option>甘蓝</option>
+                            <option>豇豆</option>
+                        </optgroup>
+                        <optgroup label="果树">
+                            <option>苹果</option>
+                            <option>梨</option>
+                            <option>葡萄</option>
+                            <option>柑橘</option>
+                            <option>桃</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-inner">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <div class="upload-icon">🌱</div>
+                            <div class="upload-tip">拖拽或点击上传病害叶片照片</div>
+                            <button class="btn" id="selectBtn">选择图片</button>
+                        </div>
+                        <img id="preview-img" alt="病害叶片预览">
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+            </div>
+
+            <div class="main-right">
+                <div class="tab-bar">
+                    <button class="tab-btn active" data-tab="vision">识别结果</button>
+                    <button class="tab-btn" data-tab="chat">农事问答</button>
+                </div>
+
+                <div class="tab-pane active" id="pane-vision">
+                    <div class="loading-wrap" id="loadingBox">
+                        <div class="loader"></div>
+                        <p class="loading-text">AI 识别中</p>
+                    </div>
+                    <div id="result-content">
+                        <div class="result-placeholder" id="resultPlaceholder">
+                            <div class="rp-title">◆ 本期识病 ◆</div>
+                            <div class="rp-text">上传一张叶片照片，本报为你辨病开方。<br>聚焦病斑、光线充足，认得更准。</div>
+                        </div>
+                    </div>
+                    <div class="clear-row">
+                        <span class="model-sign">本期识病：千问视觉执诊 · 影像不出本机</span>
+                        <button class="btn btn-outline" id="clearBtn">清空</button>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="pane-chat">
+                    <div id="chat-content">
+                        <p style="color:#8a8272;">你好，有什么种植问题都可以问我。</p>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chatInput" placeholder="例如：小麦锈病怎么治？">
+                        <button class="mic-btn" id="micBtn" type="button" aria-label="语音输入">
+                            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                                <path d="M12 14.6a3.4 3.4 0 0 0 3.4-3.4V6.1a3.4 3.4 0 1 0-6.8 0v5.1A3.4 3.4 0 0 0 12 14.6Z" fill="currentColor"/>
+                                <path d="M6.6 11.2a5.4 5.4 0 0 0 10.8 0M12 16.6V20m-2.4 0h4.8" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <button class="btn" id="chatSend">发送</button>
+                    </div>
+                    <div class="chat-hint">病虫害防治 / 施肥时机 / 浇水建议</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 病相立体图 ================= -->
+        <div class="bx3d-box" id="bx3dBox">
+            <div class="bx3d-head">
+                <div class="bx3d-title">病 相 立 体 图</div>
+                <div class="bx3d-sub" id="bx3dSub">识别出病症后 · 模型自动立起</div>
+            </div>
+            <div class="bx3d-body" id="bx3dBody">
+                <div class="bx3d-stage" id="bx3dStage">
+                    <div class="bx3d-hint">拖动旋转 · 滚轮缩放</div>
+                </div>
+                <div class="bx3d-foot">
+                    <p class="bx3d-name" id="bx3dName"></p>
+                    <p class="bx3d-note" id="bx3dNote"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 使用说明 ================= -->
+    <div class="page" id="page-guide">
+        <div class="article">
+            <h2>使用说明</h2>
+            <h3>病害识别</h3>
+            <p class="lead">在左侧上传病害叶片照片，系统将自动识别作物病害，并给出通俗的防治建议。建议拍摄时聚焦病斑区域，光线充足，效果更佳。</p>
+            <h3>农事问答</h3>
+            <p>切换到「农事问答」标签页，直接输入你的种植问题，AI会用大白话回答，优先给田间管理建议。</p>
+            <h3>逐时农事简报</h3>
+            <p>页面顶部「今日逐时农事简报」会读取当地实时天气，按小时给出农事提醒：温度过高、湿度过大、即将降雨、风力变大等情况都会即时提示，方便安排下地、打药和浇水时间。</p>
+            <h3>服务原则</h3>
+            <ul>
+                <li>适配大田作物（小麦、玉米）</li>
+                <li>语言通俗，方便农户读懂</li>
+                <li>病害知识严谨，不随意篡改定义</li>
+                <li>优先田间管理方案，用药建议审慎规范</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ================= 关于 ================= -->
+    <div class="page" id="page-about">
+        <div class="article">
+            <h2>关于本报</h2>
+            <p class="lead">识稼日报是一份面向大田农户的AI辅助农情刊物，集病害识别、农事问答、逐时天气提醒于一体，帮助农户科学种田。</p>
+            <h3>本报宗旨</h3>
+            <ul>
+                <li>拍照识别小麦、玉米常见病害</li>
+                <li>农事问答，随时解答种植疑问</li>
+                <li>按小时推送农事提醒，不误农时</li>
+            </ul>
+            <p style="margin-top:44px; text-align:center; font-size:18px; color:#8B0000; letter-spacing:5px;">
+                古观稼识病 · AI智辨农殇
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =================== 日期 / 期号 =================== */
+/* 公历转中文数字，报头用传统写法：二〇二六年十一月十三日 */
+const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+function cnNum(n) {
+    if (n < 10) return CN_DIGITS[n];
+    if (n === 10) return '十';
+    if (n < 20) return '十' + (n % 10 ? CN_DIGITS[n % 10] : '');
+    const tens = Math.floor(n / 10);
+    const unit = n % 10;
+    return CN_DIGITS[tens] + '十' + (unit ? CN_DIGITS[unit] : '');
+}
+
+function cnYear(y) {
+    return String(y).split('').map(function (c) { return CN_DIGITS[+c]; }).join('');
+}
+
+function initDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+    const week = weekDays[now.getDay()];
+    document.getElementById('todayDate').textContent =
+        `${cnYear(year)}年 ${cnNum(month)}月${cnNum(day)}日 星期${week}`;
+    /* 期号按当年第几天计算，看起来更像连续出版 */
+    const dayOfYear = Math.floor((now - new Date(year, 0, 0)) / 86400000);
+    document.getElementById('issueNo').textContent = `第 ${dayOfYear} 期`;
+}
+initDate();
+
+/* =================== 页面切换 =================== */
+const navLinks = document.querySelectorAll('.nav-link');
+const pages = document.querySelectorAll('.page');
+navLinks.forEach(link => {
+    link.onclick = () => {
+        navLinks.forEach(l => l.classList.remove('active'));
+        pages.forEach(p => p.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById('page-' + link.dataset.page).classList.add('active');
+    };
+});
+
+/* =================== 标签切换 =================== */
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanes = document.querySelectorAll('.tab-pane');
+tabBtns.forEach(btn => {
+    btn.onclick = () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    };
+});
+
+/* =================== 打字机 =================== */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* marked 万一没取到（CDN 抽风、离线），退回纯文本，别让打字机整段崩掉 */
+function safeMarked(t) {
+    if (window.marked && typeof marked.parse === 'function') {
+        try {
+            return marked.parse(t);
+        } catch (e) {}
+    }
+    return String(t).replace(/[&<>]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+    });
+}
+
+async function typeWriterRich(el, text, speed = 20) {
+    const lines = text.split('\n');
+    el.innerHTML = '';
+    let pending = [];   /* 连续的列表项攒成一块，别每行各成一个 <ul> */
+
+    async function flushList() {
+        if (!pending.length) return;
+        const block = document.createElement('div');
+        el.appendChild(block);
+        block.innerHTML = safeMarked(pending.join('\n'));
+        pending = [];
+        await sleep(120);
+    }
+
+    for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        /* 列表项：-、*、+ 或 1. 开头 */
+        if (/^([-*+]|\d+\.)\s/.test(line)) {
+            pending.push(line);
+            continue;
+        }
+        await flushList();
+        const lineEl = document.createElement('div');
+        el.appendChild(lineEl);
+        if (line.startsWith('#')) {
+            lineEl.innerHTML = safeMarked(line);
+            await sleep(150);
+            continue;
+        }
+        let html = '';
+        for (let i = 0; i < line.length; i++) {
+            html += line.charAt(i);
+            lineEl.innerHTML = safeMarked(html) + '<span class="cursor"></span>';
+            await sleep(speed);
+        }
+        lineEl.innerHTML = safeMarked(line);
+    }
+    await flushList();
+    el.querySelectorAll('.cursor').forEach(c => c.remove());
+}
+
+/* 辨病完成盖一枚印，这是本报的动作签名 */
+function stampResult() {
+    var old = document.getElementById('resultSeal');
+    if (old) old.remove();
+    var seal = document.createElement('div');
+    seal.id = 'resultSeal';
+    seal.className = 'seal-result';
+    seal.textContent = '已辨';
+    resultContent.appendChild(seal);
+    requestAnimationFrame(function () { seal.classList.add('stamped'); });
+}
+
+/* =================== 图片压缩 =================== */
+function compressImage(file, maxSide = 640) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > h) {
+                    if (w > maxSide) { h = h * maxSide / w; w = maxSide; }
+                } else {
+                    if (h > maxSide) { w = w * maxSide / h; h = maxSide; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.8);
+            };
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+/* =================== 上传识别 =================== */
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const selectBtn = document.getElementById('selectBtn');
+const previewImg = document.getElementById('preview-img');
+const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+const loadingBox = document.getElementById('loadingBox');
+const resultContent = document.getElementById('result-content');
+const clearBtn = document.getElementById('clearBtn');
+
+selectBtn.onclick = (e) => { e.stopPropagation(); fileInput.click(); };
+uploadArea.onclick = () => fileInput.click();
+
+uploadArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', async e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) await uploadFile(f);
+});
+fileInput.onchange = async () => {
+    const f = fileInput.files[0];
+    if (f) await uploadFile(f);
+};
+
+const PLACEHOLDER_HTML = '<div class="result-placeholder" id="resultPlaceholder">' +
+    '<div class="rp-title">◆ 本期识病 ◆</div>' +
+    '<div class="rp-text">上传一张叶片照片，本报为你辨病开方。<br>聚焦病斑、光线充足，认得更准。</div></div>';
+
+clearBtn.onclick = () => {
+    previewImg.style.display = 'none';
+    previewImg.src = '';
+    uploadPlaceholder.style.display = 'flex';
+    resultContent.innerHTML = PLACEHOLDER_HTML;
+    fileInput.value = '';
+};
+
+function dxEsc(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+}
+
+/* 把结构化诊断单渲染成报馆表格 */
+function renderDiagnosis(d) {
+    const rows = [];
+    function add(k, v, cls) {
+        if (v === undefined || v === null || v === '') return;
+        rows.push({ k: k, v: v, cls: cls || '', i: rows.length });
+    }
+
+    const verdict = d.verdict || '疑似';
+    const conf = (typeof d.confidence === 'number') ? d.confidence + '%' : '';
+    const vCls = verdict === '确诊' ? 'ok' : 'weak';
+
+    add('作　物', dxEsc(d.crop || '未辨识'));
+    add('病　名', dxEsc(d.disease));
+    add('判　定', '<span class="dx-verdict ' + vCls + '">' + dxEsc(verdict) + '</span>' + (conf ? ' · 把握 ' + conf : ''));
+    add('依　据', dxEsc(d.evidence));
+    add('严重度', dxEsc(d.severity));
+    add('发病阶段', dxEsc(d.stage));
+    add('防治窗口', dxEsc(d.window));
+    add('处　方', dxEsc(d.prescription), 'dx-rx');
+    add('田间提醒', dxEsc(d.fieldnote));
+
+    let html = '<table class="dx-sheet"><caption>病 情 诊 断 单</caption><tbody>';
+    rows.forEach(function (r) {
+        html += '<tr style="animation-delay:' + (r.i * 55) + 'ms">' +
+                '<th>' + r.k + '</th><td class="' + r.cls + '">' + r.v + '</td></tr>';
+    });
+    html += '</tbody></table>';
+
+    const cands = (d.candidates || []).filter(function (c) { return c && c.name; });
+    if (cands.length) {
+        html += '<div class="dx-cand"><p class="dx-block-t">参 考 病 例</p><ul>';
+        cands.forEach(function (c) {
+            const p = Math.max(0, Math.min(100, Number(c.confidence) || 0));
+            html += '<li><span class="cn">' + dxEsc(c.name) + '</span>' +
+                    '<span class="cbar"><i style="width:' + p + '%"></i></span>' +
+                    '<span class="cp">' + p + '</span></li>';
+        });
+        html += '</ul></div>';
+    }
+
+    if (verdict === '不敢断') {
+        html += '<div class="dx-retake"><p class="dx-block-t">重 拍 指 引</p>' +
+                '<p>一、把病斑放画面正中，约占三分之一；二、顺光拍摄，别在阴影里；' +
+                '三、离叶片十五厘米左右，别太远也别贴脸。</p></div>';
+    }
+
+    html += '<div class="dx-actions">' +
+            '<button class="dx-act" id="dxSpeak" type="button">读　一　遍</button>' +
+            '<button class="dx-act" id="dxSave" type="button">存 为 图 片</button>' +
+            '</div>';
+    html += '<p class="dx-sign">本报 AI 诊断　·　千问视觉　·　本地留档</p>';
+    resultContent.innerHTML = html;
+
+    lastDiag = d;
+
+    /* 认出病名，就展开栏目、让对应模型从纸面上立起来 */
+    if (window.BX3D_REVEAL && window.BingXiang3D) {
+        var bxKey = window.BingXiang3D.pick(d.disease || '');
+        if (bxKey) window.BX3D_REVEAL(bxKey);
+    }
+
+    var sp = document.getElementById('dxSpeak');
+    var sv = document.getElementById('dxSave');
+    if (sp) sp.onclick = function () { speakDiag(d); };
+    if (sv) sv.onclick = function () { saveDiagImage(); };
+}
+
+/* =================== 语音播报 =================== */
+let lastDiag = null;
+
+function diagSpeechText(d) {
+    const p = [];
+    if (d.crop && d.crop !== '未辨识') p.push('这一株是' + d.crop);
+    p.push((d.verdict || '疑似') + '，' + (d.disease || '暂不能确定'));
+    if (typeof d.confidence === 'number' && d.confidence) p.push('把握' + d.confidence + '成');
+    if (d.severity) p.push('严重程度' + d.severity);
+    if (d.stage) p.push('正处在' + d.stage);
+    if (d.prescription) p.push('处置办法，' + d.prescription);
+    if (d.fieldnote) p.push('地里要留神，' + d.fieldnote);
+    if (d.window) p.push('防治窗口，' + d.window);
+    return p.join('。');
+}
+
+function speakDiag(d) {
+    var btn = document.getElementById('dxSpeak');
+    if (!('speechSynthesis' in window)) {
+        if (btn) btn.textContent = '此机型不支持朗读';
+        return;
+    }
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (btn) { btn.classList.remove('is-on'); btn.textContent = '读　一　遍'; }
+        return;
+    }
+    var u = new SpeechSynthesisUtterance(diagSpeechText(d));
+    u.lang = 'zh-CN';
+    u.rate = 0.86;          /* 比默认慢一点，老人听得清 */
+    u.pitch = 1;
+    u.onend = function () {
+        if (btn) { btn.classList.remove('is-on'); btn.textContent = '读　一　遍'; }
+    };
+    u.onerror = function () {
+        if (btn) { btn.classList.remove('is-on'); btn.textContent = '读　一　遍'; }
+    };
+    window.speechSynthesis.speak(u);
+    if (btn) { btn.classList.add('is-on'); btn.textContent = '停　止'; }
+}
+
+/* =================== 诊断单存图 =================== */
+function saveDiagImage() {
+    var btn = document.getElementById('dxSave');
+    if (typeof html2canvas !== 'function') {
+        if (btn) btn.textContent = '截图组件未加载';
+        return;
+    }
+    var old = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '生成中…'; }
+
+    html2canvas(resultContent, {
+        backgroundColor: '#f2ebd9',
+        scale: Math.min(2, window.devicePixelRatio || 1.5),
+        useCORS: true,
+        logging: false,
+        onclone: function (doc) {
+            /* 关键：克隆文档里的动画会从头再播一遍，各行停在 opacity:0，
+               直接截就是一片空白。先掐掉动画，再把各层强制拉回可见。 */
+            var kill = doc.createElement('style');
+            kill.textContent = '*{animation:none !important;transition:none !important;}';
+            doc.head.appendChild(kill);
+
+            var el = doc.getElementById('result-content');
+            if (!el) return;
+            el.style.padding = '24px 18px 26px';
+            el.style.boxSizing = 'border-box';
+
+            Array.prototype.forEach.call(
+                el.querySelectorAll('.dx-sheet tr, .dx-cand, .dx-cand li'),
+                function (n) {
+                    n.style.opacity = '1';
+                    n.style.transform = 'none';
+                    n.style.animation = 'none';
+                }
+            );
+
+            /* 按钮不进图，存出来是一张干净的单子 */
+            var acts = el.querySelector('.dx-actions');
+            if (acts) acts.style.display = 'none';
+
+            /* 落款与印章并排：签名占左、章贴右，互不挤压也不折行 */
+            var sg = el.querySelector('.dx-sign');
+            var seal = el.querySelector('#resultSeal');
+            if (sg && seal) {
+                var wrap = doc.createElement('div');
+                wrap.style.display = 'flex';
+                wrap.style.alignItems = 'center';
+                wrap.style.justifyContent = 'flex-end';
+                wrap.style.gap = '10px';
+                wrap.style.marginTop = '6px';
+                sg.parentNode.insertBefore(wrap, sg);
+
+                sg.style.margin = '0';
+                sg.style.padding = '0';
+                sg.style.textAlign = 'right';
+                sg.style.fontSize = '10.5px';
+                sg.style.letterSpacing = '1.5px';
+                sg.style.whiteSpace = 'nowrap';
+                sg.style.flex = '0 0 auto';
+                sg.style.minWidth = '0';
+                wrap.appendChild(sg);
+
+                seal.style.position = 'static';
+                seal.style.top = 'auto';
+                seal.style.bottom = 'auto';
+                seal.style.right = 'auto';
+                seal.style.margin = '0';
+                seal.style.width = '58px';
+                seal.style.height = '58px';
+                seal.style.flex = '0 0 auto';
+                seal.style.opacity = '1';
+                seal.style.transform = 'rotate(-7deg)';
+                seal.style.animation = 'none';
+                wrap.appendChild(seal);
+            }
+        }
+    }).then(function (canvas) {
+        var dataUrl = canvas.toDataURL('image/png');
+        var name = '识稼日报-诊断单-' + ((lastDiag && lastDiag.disease) || '') + '.png';
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        if (isIOS) {
+            showImageOverlay(dataUrl);
+        } else {
+            var a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        if (btn) btn.textContent = old;
+    }).catch(function (e) {
+        if (btn) btn.textContent = '存图失败';
+        console.warn('saveDiagImage failed', e);
+    });
+}
+
+function showImageOverlay(dataUrl) {
+    var box = document.createElement('div');
+    box.className = 'img-overlay';
+    box.innerHTML = '<p>长按下面这张图，保存到相册</p>' +
+                    '<img src="' + dataUrl + '" alt="诊断单">' +
+                    '<button type="button">关　闭</button>';
+    box.addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') box.remove();
+    });
+    document.body.appendChild(box);
+}
+
+async function uploadFile(file) {
+    const blob = await compressImage(file);
+
+    previewImg.src = URL.createObjectURL(blob);
+    previewImg.style.display = 'block';
+    uploadPlaceholder.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('image', blob, file.name);
+    const cropSel = document.getElementById('cropSelect');
+    if (cropSel && cropSel.value) formData.append('crop', cropSel.value);
+
+    loadingBox.style.display = 'block';
+    resultContent.innerHTML = '';
+    tabBtns[0].click();
+
+    try {
+        const res = await fetch('/vision', { method: 'POST', body: formData });
+        const data = await res.json();
+        loadingBox.style.display = 'none';
+        if (data.ok && data.diag) {
+            renderDiagnosis(data.diag);
+            setTimeout(stampResult, 300);
+        } else if (data.content) {
+            await typeWriterRich(resultContent, data.content, 15);
+            stampResult();
+        } else {
+            resultContent.innerHTML = '<p class="tip-warn">' +
+                (data.error || '本报暂未识得，请重拍一张更清晰的叶片照片。') + '</p>';
+        }
+    } catch (err) {
+        loadingBox.style.display = 'none';
+        resultContent.innerHTML = '<p class="tip-warn">识病先生这会儿没应声，稍等片刻再传一次。</p>';
+    }
+}
+
+/* =================== 农事问答 =================== */
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatContent = document.getElementById('chat-content');
+
+async function sendChat() {
+    const msg = chatInput.value.trim();
+    if (!msg) return;
+    chatInput.value = '';
+
+    const userEl = document.createElement('p');
+    userEl.style.margin = '16px 0 8px';
+    userEl.style.fontWeight = '600';
+    userEl.innerHTML = '问：' + msg;
+    chatContent.appendChild(userEl);
+
+    const loadingEl = document.createElement('div');
+    loadingEl.style.cssText = 'padding:16px 0; color:#8a8272; font-size:14px;';
+    loadingEl.innerHTML = '<div style="width:24px;height:24px;border:2px solid #d5c9a8;border-top-color:#241f18;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></div>AI 回答中';
+    chatContent.appendChild(loadingEl);
+
+    try {
+        const res = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ msg: msg })
+        });
+        const data = await res.json();
+        loadingEl.remove();
+
+        const reply = data.content || '回答出错了';
+        const answerEl = document.createElement('div');
+        answerEl.style.marginBottom = '18px';
+        chatContent.appendChild(answerEl);
+        await typeWriterRich(answerEl, reply, 15);
+    } catch (err) {
+        loadingEl.remove();
+        chatContent.innerHTML += '<p style="color:#8B0000;">老把式这会儿不在，换句话再问问。</p>';
+    }
+}
+chatSend.onclick = sendChat;
+
+
+/* =================== 语音输入 =================== */
+(function () {
+    var btn = document.getElementById('micBtn');
+    var input = document.getElementById('chatInput');
+    if (!btn || !input) return;
+
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var rec = null, listening = false, baseText = '', hintEl = null, hintTimer = null;
+
+    function hint(msg, ms) {
+        if (!hintEl) {
+            hintEl = document.createElement('div');
+            hintEl.className = 'mic-hint';
+            input.parentNode.appendChild(hintEl);
+        }
+        hintEl.textContent = msg;
+        hintEl.classList.add('show');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () { hintEl.classList.remove('show'); }, ms || 3000);
+    }
+
+    if (!SR) btn.classList.add('mic-off');
+
+    btn.addEventListener('click', function () {
+        if (!SR) {
+            hint('这个浏览器没有语音识别，用键盘上的麦克风键试试。', 4200);
+            return;
+        }
+        /* http 局域网地址下浏览器不给麦克风，这是浏览器的安全策略，不是页面坏了 */
+        if (!window.isSecureContext) {
+            hint('手机用局域网地址打开时，浏览器不给麦克风权限。请点键盘上的语音听写键。', 5200);
+            return;
+        }
+        if (listening) { try { rec.stop(); } catch (e) {} return; }
+
+        if (!rec) {
+            rec = new SR();
+            rec.lang = 'zh-CN';
+            rec.interimResults = true;
+            rec.continuous = false;
+            rec.onstart = function () {
+                listening = true;
+                btn.classList.add('listening');
+                baseText = input.value.trim() ? input.value.trim() + ' ' : '';
+                hint('正在听……说完自动转成文字', 3000);
+            };
+            rec.onresult = function (e) {
+                var txt = '';
+                for (var i = e.resultIndex; i < e.results.length; i++) {
+                    txt += e.results[i][0].transcript;
+                }
+                input.value = baseText + txt;
+            };
+            rec.onerror = function (e) {
+                listening = false;
+                btn.classList.remove('listening');
+                var map = {
+                    'not-allowed': '麦克风被拒绝了，在浏览器里允许一下再试。',
+                    'service-not-allowed': '浏览器把语音服务关了，换成键盘听写。',
+                    'no-speech': '没听到声音，靠近点再说一次。',
+                    'audio-capture': '没找到麦克风。',
+                    'network': '语音服务连不上，换成键盘听写。',
+                    'aborted': '已取消。'
+                };
+                hint(map[e.error] || ('语音输入出错：' + (e.error || '未知')), 4200);
+            };
+            rec.onend = function () {
+                listening = false;
+                btn.classList.remove('listening');
+            };
+        }
+
+        try {
+            rec.start();
+        } catch (e) {
+            hint('没能启动，再点一次试试。', 3000);
+        }
+    });
+})();
+chatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendChat();
+});
+
+/* =================== 天气 · 节气 · 逐时农事 =================== */
+const weatherCodeMap = {
+    0: "晴", 1: "大部晴", 2: "多云", 3: "阴", 45: "雾", 48: "雾凇",
+    51: "小毛毛雨", 53: "毛毛雨", 55: "大毛毛雨",
+    61: "小雨", 63: "中雨", 65: "大雨",
+    66: "冻雨", 67: "强冻雨", 68: "雨夹雪",
+    71: "小雪", 73: "中雪", 75: "大雪", 77: "雪粒",
+    80: "小阵雨", 81: "阵雨", 82: "强阵雨",
+    85: "小阵雪", 86: "阵雪",
+    95: "雷暴", 96: "雷暴伴冰雹", 99: "强雷暴伴冰雹"
+};
+
+function getCropStage() {
+    const month = new Date().getMonth() + 1;
+    let name, stage;
+    if (month >= 10 || month <= 6) {
+        name = "小麦";
+        if (month >= 3 && month <= 4) stage = "返青拔节期";
+        else if (month >= 5 && month <= 6) stage = "灌浆成熟期";
+        else if (month >= 10 && month <= 11) stage = "播种出苗期";
+        else stage = "越冬期";
+    } else {
+        name = "玉米";
+        if (month >= 6 && month <= 7) stage = "苗期";
+        else if (month >= 8 && month <= 9) stage = "拔节抽穗期";
+        else stage = "灌浆成熟期";
+    }
+    return name + stage;
+}
+
+const solarData = [
+    { name: "立春", tip: "小麦注意防寒，及时镇压保墒" },
+    { name: "雨水", tip: "麦田留意返青，适时追肥" },
+    { name: "惊蛰", tip: "春田开始整地，预防地下害虫" },
+    { name: "春分", tip: "小麦返青期，控旺防倒" },
+    { name: "清明", tip: "玉米备种，做好种子筛选" },
+    { name: "谷雨", tip: "抓紧春播，雨后注意防渍" },
+    { name: "立夏", tip: "小麦灌浆，避免干旱" },
+    { name: "小满", tip: "麦田防干热风，及时补水" },
+    { name: "芒种", tip: "小麦抢收，玉米夏播抓紧" },
+    { name: "夏至", tip: "夏玉米苗期，做好除草" },
+    { name: "小暑", tip: "高温多雨，注意病害预防" },
+    { name: "大暑", tip: "大田防涝，雨后及时排水" },
+    { name: "立秋", tip: "玉米进入拔节期，酌情追肥" },
+    { name: "处暑", tip: "玉米防早衰，留意叶斑病" },
+    { name: "白露", tip: "昼夜温差拉大，玉米促灌浆" },
+    { name: "秋分", tip: "秋收准备，适时腾茬整地" },
+    { name: "寒露", tip: "冬小麦适期播种" },
+    { name: "霜降", tip: "小麦苗期防冻，酌情控水" },
+    { name: "立冬", tip: "麦田做好冬前保墒" },
+    { name: "小雪", tip: "静等封冻，减少田间作业" },
+    { name: "大雪", tip: "积雪利于麦田保墒" },
+    { name: "冬至", tip: "小麦越冬，无需多操作" },
+    { name: "小寒", tip: "麦田防寒，严禁乱踩踏" },
+    { name: "大寒", tip: "备好农资，等待开春" }
+];
+
+function getSolarTerm() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const s = [[2,4],[2,19],[3,6],[3,21],[4,5],[4,20],
+               [5,6],[5,21],[6,6],[6,21],[7,7],[7,22],
+               [8,7],[8,23],[9,8],[9,23],[10,8],[10,23],
+               [11,7],[11,22],[12,7],[12,21],[1,6],[1,20]];
+    let idx = 0;
+    for (let i = 0; i < s.length; i++) {
+        const d = new Date(y, s[i][0] - 1, s[i][1]);
+        if (now < d) break;
+        idx = i;
+    }
+    return solarData[idx];
+}
+
+/* 报头节气尺：24 格，当季节气用朱红点亮 */
+const TERM_NAMES = ['立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满',
+                    '芒种','夏至','小暑','大暑','立秋','处暑','白露','秋分',
+                    '寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒'];
+
+function renderTermRuler(current) {
+    const el = document.getElementById('termRuler');
+    if (!el) return;
+    window.__curTerm = current;
+
+    /* 手机上放不下二十四格，只留当前节气前后各三格，仍然是一条刻度尺 */
+    const narrow = window.innerWidth <= 600;
+    const idx = TERM_NAMES.indexOf(current);
+    let list = TERM_NAMES;
+    if (narrow && idx >= 0) {
+        list = [];
+        for (let k = -3; k <= 3; k++) {
+            list.push(TERM_NAMES[(idx + k + 24) % 24]);
+        }
+    }
+    el.innerHTML = list.map(function (t) {
+        return '<span class="term' + (t === current ? ' now' : '') + '">' + t + '</span>';
+    }).join('');
+}
+
+/* 横竖屏切换时重画节气尺，免得从小屏拖大还停在七格 */
+let termRulerTimer = null;
+window.addEventListener('resize', function () {
+    clearTimeout(termRulerTimer);
+    termRulerTimer = setTimeout(function () {
+        if (window.__curTerm) renderTermRuler(window.__curTerm);
+    }, 180);
+});
+
+/* -------- 按小时生成农事建议 -------- */
+function makeHourlyTip(h) {
+    const tips = [];
+    const isDay = h.hour >= 6 && h.hour <= 18;
+
+    /* 降雨 */
+    if (h.rain >= 70) tips.push("有雨，别打药别浇水");
+    else if (h.rain >= 40) tips.push("可能下雨，收好农具膜布");
+
+    /* 温度 */
+    if (h.temp >= 35) tips.push("太热，别下地，防中暑");
+    else if (h.temp >= 31) tips.push("偏热，干活趁早晚");
+    else if (h.temp <= -5) tips.push("严寒，麦田防冻害");
+    else if (h.temp <= 0) tips.push("气温零下，注意防冻");
+
+    /* 湿度 */
+    if (h.hum >= 88) tips.push("湿气太重，小心病害蔓延");
+    else if (h.hum <= 30) tips.push("空气干燥，注意保墒");
+
+    /* 风力 */
+    if (h.wind >= 25) tips.push("风大，不宜喷药");
+    else if (h.wind >= 18) tips.push("风偏大，喷药要小心");
+
+    /* 夜间 */
+    if (!isDay && tips.length === 0) tips.push("夜里不下地，检查灌溉");
+
+    if (tips.length === 0) {
+        if (h.temp >= 10 && h.temp <= 28 && h.rain < 20) tips.push("天气合适，可正常下地");
+        else tips.push("天气平稳，按节气安排农事");
+    }
+    return tips.slice(0, 2).join("，");
+}
+
+/* -------- 获取天气 + 逐时农事 -------- */
+/* 天气由后端代取，手机只要能连上电脑就行，不必自己上外网 */
+const API_URL = "/weather";
+
+let lastHourData = null;
+
+async function loadWeather() {
+    try {
+        /* 八秒不回来就当没取到，直接走兜底，不让页面一直挂着"加载中" */
+        const controller = new AbortController();
+        const timer = setTimeout(function () { controller.abort(); }, 8000);
+        let r;
+        try {
+            r = await fetch(API_URL, { signal: controller.signal, cache: "no-store" });
+        } finally {
+            clearTimeout(timer);
+        }
+        if (!r.ok) throw new Error("weather " + r.status);
+        const j = await r.json();
+        if (j && j.error) throw new Error(j.error);
+
+        const cur = j.current;
+        const curTemp = Math.round(cur.temperature_2m);
+        const curHum = Math.round(cur.relative_humidity_2m);
+        const curRain = Math.round(cur.precipitation_probability ?? 0);
+        const curWind = Math.round(cur.wind_speed_10m ?? 0);
+        const curCode = cur.weather_code;
+
+        /* 顶部天气栏 */
+        document.getElementById('weatherMain').textContent = `${curTemp}℃`;
+        document.getElementById('weatherSub').textContent =
+            `${weatherCodeMap[curCode] || ""} · 湿度${curHum}% · 风${curWind}km/h`;
+        document.getElementById('weatherExtra').textContent = '';
+
+        /* 节气 */
+        const solarItem = getSolarTerm();
+        document.getElementById('solarMain').textContent = solarItem.name;
+        document.getElementById('cropStage').textContent = getCropStage();
+        renderTermRuler(solarItem.name);
+
+        /* 定位当前小时在 hourly 数组中的位置 */
+        const curKey = (j.current.time || "").substring(0, 13);
+        let idx = j.hourly.time.findIndex(t => t.substring(0, 13) === curKey);
+        if (idx < 0) idx = 0;
+
+        const hourly = j.hourly;
+        const curHour = parseInt((hourly.time[idx] || "").substring(11, 13), 10);
+        const nowHourObj = {
+            hour: curHour,
+            temp: Math.round(hourly.temperature_2m[idx]),
+            hum: Math.round(hourly.relative_humidity_2m[idx]),
+            rain: Math.round(hourly.precipitation_probability[idx] ?? 0),
+            wind: Math.round(hourly.wind_speed_10m[idx] ?? 0)
+        };
+        lastHourData = nowHourObj;
+
+        /* 此刻农事（第三栏） */
+        const nowTip = makeHourlyTip(nowHourObj);
+        document.getElementById('farmTip').innerHTML =
+            `<span class="tag">${curHour}时</span> ${nowTip}<br>` +
+            `<span style="color:#7a7466;font-size:12px;">${solarItem.tip}</span>`;
+        document.getElementById('hourlySummary').innerHTML =
+            `<span class="tag">${curHour}时</span> ${nowTip}`;
+
+        /* 逐时简报 */
+        const hourItems = [];
+        for (let k = 0; k < 4; k++) {
+            const hi = idx + k;
+            if (hi >= hourly.time.length) break;
+            hourItems.push({
+                hour: parseInt(hourly.time[hi].substring(11, 13), 10),
+                temp: Math.round(hourly.temperature_2m[hi]),
+                hum: Math.round(hourly.relative_humidity_2m[hi]),
+                rain: Math.round(hourly.precipitation_probability[hi] ?? 0),
+                wind: Math.round(hourly.wind_speed_10m[hi] ?? 0),
+                code: hourly.weather_code[hi]
+            });
+        }
+        renderHourlyItems(hourItems);
+
+        /* 更新时间 */
+        const nowStr = (j.current.time || "").substring(11, 16);
+        document.getElementById('hourlyUpdate').textContent =
+            `更新于 ${nowStr} · 每小时自动刷新`;
+
+    } catch (e) {
+        renderFallback();
+    }
+}
+
+/* 断网兜底：按季节与季节常态给出农事参考，不显示技术报错 */
+function renderFallback() {
+    const solarItem = getSolarTerm();
+    const h = new Date().getHours();
+    const baseTemp = [5,5,4,4,5,7,10,13,15,14,11,8,6,5,4,4,3,3,3,3,4,5,5,5];
+    const items = [];
+    for (let k = 0; k < 4; k++) {
+        const hh = (h + k) % 24;
+        items.push({ hour: hh, temp: baseTemp[hh], hum: 58, rain: 10, wind: 9, code: 3 });
+    }
+    document.getElementById('weatherMain').textContent = baseTemp[h] + '℃';
+    document.getElementById('weatherSub').textContent = '阴 · 湿度58% · 风9km/h';
+    document.getElementById('weatherExtra').textContent = '';
+    document.getElementById('solarMain').textContent = solarItem.name;
+    document.getElementById('cropStage').textContent = getCropStage();
+    renderTermRuler(solarItem.name);
+    const fallbackTip = makeHourlyTip(items[0]);
+    document.getElementById('farmTip').innerHTML =
+        '<span class="tag">' + h + '时</span> ' + fallbackTip + '<br>' +
+        '<span style="color:#7a7466;font-size:12px;">' + solarItem.tip + '</span>';
+    document.getElementById('hourlySummary').innerHTML =
+        '<span class="tag">' + h + '时</span> ' + fallbackTip;
+    renderHourlyItems(items);
+    document.getElementById('hourlyUpdate').textContent = '按节气推算 · 本报农事观测';
+}
+
+/* 渲染未来四小时简报 */
+function renderHourlyItems(items) {
+    const list = document.getElementById('hourlyList');
+    list.innerHTML = '';
+    items.slice(0, 4).forEach((it, k) => {
+        const tip = makeHourlyTip(it);
+        const div = document.createElement('div');
+        div.className = 'hourly-item' + (k === 0 ? ' is-now' : '');
+        div.innerHTML =
+            '<div class="hour-label">' + String(it.hour).padStart(2, '0') + '时' + (k === 0 ? '(此刻)' : '') + '</div>' +
+            '<div class="hour-weather">' + it.temp + '℃ · ' + (weatherCodeMap[it.code] || '') + '<br>雨' + it.rain + '% · 风' + it.wind + 'km/h</div>' +
+            '<div class="hour-tip">' + tip + '</div>';
+        list.appendChild(div);
+    });
+}
+
+/* 逐时简报展开 / 收起 */
+const hourlyHeadEl = document.getElementById('hourlyHead');
+const hourlyListEl = document.getElementById('hourlyList');
+const hourlySummaryEl = document.getElementById('hourlySummary');
+const hourlyToggleEl = document.getElementById('hourlyToggle');
+let hourlyOpen = false;
+
+function setHourlyOpen(open) {
+    hourlyOpen = open;
+    hourlyListEl.classList.toggle('collapsed', !open);
+    hourlySummaryEl.style.display = open ? 'none' : 'block';
+    hourlyToggleEl.textContent = open ? '收起 ▴' : '展开 ▾';
+}
+hourlyHeadEl.onclick = () => setHourlyOpen(!hourlyOpen);
+
+/* 首次加载 + 每 10 分钟刷新一次，整点前后及时更新 */
+loadWeather();
+setInterval(loadWeather, 10 * 60 * 1000);
+</script>
+<script>
+/* 病相立体图：初始化 + 识别后只立起对应病症的模型 */
+(function () {
+    if (!window.BingXiang3D) return;
+    var stage = document.getElementById('bx3dStage');
+    if (!stage) return;
+
+    BingXiang3D.init('bx3dStage');
+
+    var nameEl = document.getElementById('bx3dName');
+    var noteEl = document.getElementById('bx3dNote');
+
+    function fillNote(key) {
+        var def = BingXiang3D.info[key];
+        if (!def) return;
+        if (nameEl) nameEl.textContent = def.name;
+        if (noteEl) noteEl.textContent = def.note;
+    }
+
+    window.BX3D_SELECT = fillNote;
+
+    /* 识别出病名：展开栏目，只立起这一种病的模型 */
+    window.BX3D_REVEAL = function (key) {
+        if (!BingXiang3D.info[key]) return;
+        var boxEl = document.getElementById('bx3dBox');
+        if (boxEl) boxEl.classList.add('revealed');
+        var sub = document.getElementById('bx3dSub');
+        if (sub) sub.textContent = '模型已立起 · 拖动细看';
+        BingXiang3D.show(key, { appear: true });
+        fillNote(key);
+    };
+})();
+</script>
+
+</body>
+</html>

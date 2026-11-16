@@ -1,0 +1,40 @@
+# ===== 密钥与本机配置，绝对不能提交 =====
+.env
+.env.local
+*.env
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ===== 编辑器与系统杂项 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 运行产物（含局域网 IP，属隐私）=====
+运行日志.txt
+手机访问地址.txt
+*.log
+
+# ===== 历史备份 =====
+*.bak
+*.bak[0-9]
+*.injectbak
+
+# ===== 3D 模型与截图：体积过大，不进仓库 =====
+# GLB 单个最大 61 MB、合计 610 MB，只保留 18 张病害参考图
+models/*.glb
+models/*.GLB
+models/*.png
+models/*.jpg
+models/*.txt
+
+# 18 张病害参考图要保留（供对照与复现建模）
+!models/参考图/
+!models/参考图/*.png

@@ -1,0 +1,78 @@
+﻿识稼日报 · 六个病害模型提示词（Meshy 文生 3D 专用）
+==================================================
+
+【费用说明】
+Meshy 免费套餐每月 100 积分，标准文生3D 每次约 10 积分。
+六个模型 = 60 积分，免费额度完全够，不用花钱。
+如果生成结果不满意要重做，100 积分总共能做 10 次，够你重做 4 次。
+
+【操作步骤】
+1. 打开 meshy.cn，用手机号或邮箱注册登录（免费，不用绑卡）
+2. 选「Text to 3D / 文字生 3D」
+3. 把下面某一段【英文提示词】整段复制粘贴进去（英文效果比中文稳）
+4. 点生成，等约 1 分钟，出预览可以拖动看
+5. 满意就点下载，格式选 GLB（不要选 FBX / OBJ / USDZ）
+6. 下载后按下面的名字重命名，放进 ai_dasai\models 文件夹
+7. 回到网页刷新，拍一张对应的病叶试识别，模型就会弹出来
+
+【重要】不要点 Refine（细化）这个按钮，它每次额外扣分，
+免费额度很快会用光。标准生成出来的就够用。
+
+==================================================
+一、小麦条锈病 → 存为「小麦条锈病.glb」
+==================================================
+英文提示词（复制这段）：
+A close-up 3D model of a single young wheat leaf, long narrow blade pointing upward, vivid fresh green, with bright yellow-orange powdery rust pustules arranged in straight parallel lines along the leaf veins, realistic plant surface texture, single object, isolated, centered, no ground.
+
+中文对照（仅参考，不用复制）：
+单片小麦嫩叶，细长叶片朝上，鲜绿色，叶面上鲜黄橙色粉末状孢子堆沿叶脉排成一条条平行直线，真实叶面质感，单个物体，居中，无地面。
+
+==================================================
+二、小麦叶锈病 → 存为「小麦叶锈病.glb」
+==================================================
+英文提示词：
+A close-up 3D model of a single wheat leaf, long narrow blade, medium green, covered with scattered round orange-brown rust pustules randomly spread across the whole leaf surface, the pustules are circular and of different sizes and are NOT arranged in lines, realistic plant texture, single object, isolated, centered.
+
+中文对照：
+单片小麦叶，细长，中绿色，叶面布满散生的圆形橙褐色孢子堆，随机分布、大小不一、不成行排列，真实植物质感，单个物体，居中。
+
+==================================================
+三、小麦秆锈病 → 存为「小麦秆锈病.glb」
+==================================================
+英文提示词：
+A close-up 3D model of a single wheat stem with a leaf sheath, pale yellow-tan stalk, with several large dark reddish-brown blister-like rust pustules erupting from the stem surface, the pustules are big and elongated and look like cracked blisters, realistic straw texture, single object, isolated, centered.
+
+中文对照：
+单根小麦茎秆带叶鞘，淡黄褐色，茎表面长出几个大而深褐红色的疱状孢子堆，疱大、纵向拉长、像裂开的疱，真实麦秆质感，单个物体，居中。
+
+==================================================
+四、小麦白粉病 → 存为「小麦白粉病.glb」
+==================================================
+英文提示词：
+A close-up 3D model of a single wheat leaf, long narrow blade, green underneath, with the upper surface covered by a white powdery mildew layer, fluffy soft white patches spreading over the leaf, slightly grayish white powder, realistic plant texture, single object, isolated, centered.
+
+中文对照：
+单片小麦叶，细长，叶背绿色，叶面盖着一层白色粉状霉层，柔和的白色粉斑在叶面铺开，略带灰白，真实植物质感，单个物体，居中。
+
+==================================================
+五、小麦赤霉病 → 存为「小麦赤霉病.glb」
+==================================================
+英文提示词：
+A close-up 3D model of a single wheat spike (wheat head) affected by Fusarium head blight, the spikelets are covered with pinkish-orange mold layers, some glumes bleached pale white and shriveled, thin awns sticking out at the top, realistic straw and grain texture, single object, isolated, centered.
+
+中文对照：
+单个小麦麦穗，感染赤霉病，小穗表面覆着粉橙红色霉层，部分颖壳发白枯死、干瘪，顶部有几根细长的芒，真实麦穗质感，单个物体，居中。
+
+==================================================
+六、小麦纹枯病 → 存为「小麦纹枯病.glb」
+==================================================
+英文提示词：
+A close-up 3D model of the base of a wheat stem, pale straw colored stalk, with several oval brown lesions on the stem base, each lesion has concentric rings like a target or cloud pattern, the lesions look sunken and dry, realistic straw texture, single object, isolated, centered.
+
+中文对照：
+小麦茎基部特写，淡麦秆色，茎基有几个椭圆形褐色病斑，每个斑都是一圈套一圈的同心环纹，像靶心或云纹，病斑凹陷干燥，真实麦秆质感，单个物体，居中。
+
+==================================================
+生成完一个就下载一个，边做边放，不用等六个都齐。
+放进去后刷新网页，识别出对应病名，模型会自动立起来。
+==================================================
