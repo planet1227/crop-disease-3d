@@ -1215,6 +1215,57 @@ input[type="file"] { display: none; }
         right: 2px;
     }
 }
+
+/* ===== 关于页 · 编署落款 ===== */
+.credit {
+    margin-top: 46px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(139, 0, 0, .22);
+    text-align: center;
+}
+.credit-label {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 18px;
+    font-size: 12px;
+    letter-spacing: 5px;
+    color: #8B0000;
+    padding: 3px 11px 3px 16px;
+    border: 1px solid rgba(139, 0, 0, .32);
+}
+.credit-people {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 22px;
+}
+.credit-row {
+    display: flex;
+    align-items: baseline;
+    margin: 0 0 8px;
+}
+.credit-role {
+    flex: 0 0 auto;
+    width: 64px;
+    text-align: right;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #8B0000;
+}
+.credit-who {
+    flex: 0 0 auto;
+    font-size: 16px;
+    letter-spacing: 1.5px;
+    color: #2b2118;
+    margin-left: 18px;
+}
+.credit-line {
+    font-size: 13.5px;
+    line-height: 2.1;
+    color: #6b5f52;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
 </style>
 </head>
 <body>
@@ -1449,6 +1500,18 @@ input[type="file"] { display: none; }
             <p style="margin-top:44px; text-align:center; font-size:18px; color:#8B0000; letter-spacing:5px;">
                 古观稼识病 · AI智辨农殇
             </p>
+
+            <div class="credit">
+                <span class="credit-label">编 署</span>
+                <div class="credit-people">
+                    <div class="credit-row"><span class="credit-role">负责人</span><span class="credit-who">郭梓翔</span></div>
+                    <div class="credit-row"><span class="credit-role">组员</span><span class="credit-who">李炳融 · 柯轶达 · 李尚千玺</span></div>
+                    <div class="credit-row"><span class="credit-role">鸣谢</span><span class="credit-who">周文济</span></div>
+                </div>
+                <p class="credit-line">河北农业大学 · 农学</p>
+                <p class="credit-line">首届大学生人工智能素养大赛 · A 赛道智农助手</p>
+                <p class="credit-line">技术支撑：FastAPI · Qwen3-VL-Plus · DeepSeek · three.js</p>
+            </div>
         </div>
     </div>
 </div>
