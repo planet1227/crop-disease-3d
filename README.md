@@ -54,7 +54,7 @@
 需要 Python 3.10+。
 
 ```bash
-git clone https://github.com/<你的用户名>/crop-disease-3d.git
+git clone https://github.com/planet1227/crop-disease-3d.git
 cd crop-disease-3d
 
 pip install -r requirements.txt
