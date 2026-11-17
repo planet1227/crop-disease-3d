@@ -27,6 +27,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 QUIET = "--quiet" in sys.argv
+NO_BROWSER = "--no-browser" in sys.argv      # 无头测试用：只起服务，不弹窗口
 PORTS = (80, 8000, 8080, 5000)
 MARK = "识稼日报"
 
@@ -108,11 +109,29 @@ def write_addr_file(port):
         pass
 
 
+def make_qr_page(port):
+    """把「本机二维码」铺到程序目录：手机扫码图 + 一张纸质告示。
+
+    每次启动都按当前网卡重算，换 WiFi 也不会指向旧地址。
+    返回 (告示页路径, 是否第一次生成)；没有 qrcode 库时安静跳过。
+    """
+    try:
+        import qr_local
+        page = os.path.join(HERE, "手机扫码.html")
+        first = not os.path.exists(page)
+        qr_local.generate(url_for(lan_ip(), port), HERE)
+        return page, first
+    except Exception:
+        return None, False
+
+
 # ---------- 1. 已经在跑：秒开，不重复起服务 ----------
 for p in PORTS:
     if is_running(p):
         write_addr_file(p)
-        webbrowser.open(url_for("127.0.0.1", p))
+        make_qr_page(p)          # 换过网也可以顺手刷新二维码，但不弹窗
+        if not NO_BROWSER:
+            webbrowser.open(url_for("127.0.0.1", p))
         sys.exit(0)
 
 # ---------- 2. 挑一个空闲端口 ----------
@@ -124,6 +143,7 @@ if port is None:
 ip = lan_ip()
 
 write_addr_file(port)
+qr_page, qr_first = make_qr_page(port)
 
 if not QUIET:
     print()
@@ -133,6 +153,8 @@ if not QUIET:
     print()
     print("    电脑打开：", url_for("127.0.0.1", port))
     print("    手机打开：", url_for(ip, port))
+    if qr_page:
+        print("    手机扫码：", os.path.basename(qr_page), "（手机连同一个 WiFi）")
     print()
     print("    关掉这个窗口服务就停了；想无窗口运行请双击桌面图标。")
     print("=" * 48)
@@ -153,10 +175,22 @@ def wait_ready(port, timeout=30):
 
 def open_browser_later():
     wait_ready(port)
+    if NO_BROWSER:
+        return
     try:
         webbrowser.open(url_for("127.0.0.1", port))
     except Exception:
         pass
+    # 第一次生成二维码时，顺手把「扫码告示」也打开，省得自己找文件；之后不再弹
+    if qr_first and qr_page:
+        try:
+            time.sleep(1.2)
+            if os.name == "nt":
+                os.startfile(qr_page)          # 直接给路径，中文名/空格都不会出问题
+            else:
+                webbrowser.open("file://" + qr_page)
+        except Exception:
+            pass
 
 
 threading.Thread(target=open_browser_later, daemon=True).start()
