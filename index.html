@@ -1841,7 +1841,7 @@ body {
     background-attachment: scroll;
     background-image:
         /* 揉皱的纸：feTurbulence + feDiffuseLighting 打出褶皱的明暗 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.016' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='3.2' diffuseConstant='1' lighting-color='%23ffffff'%3E%3CfeDistantLight azimuth='235' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.22'/%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.016' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='3.2' diffuseConstant='1' lighting-color='%23ffffff'%3E%3CfeDistantLight azimuth='235' elevation='58'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.12'/%3E%3C/svg%3E"),
         url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
         /* 几道折痕：先暗后亮，像纸被折过又摊开 */
         linear-gradient(180deg, transparent 0 31.7%, rgba(120, 92, 50, .075) 31.85% 31.95%, rgba(255, 252, 240, .16) 32.0% 32.1%, transparent 32.25%),
@@ -1871,6 +1871,51 @@ body {
         0 0;
     background-size: auto, auto, auto, auto, auto, auto, auto, auto, 560px 400px, auto, auto, auto, auto;
     background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* ===== 纸面融合层（2026-11-17 第七轮）=====
+   目标：内容「印」在皱纸上，而不是「贴」在皱纸上。
+   纸纹压印层（multiply）+ 折痕层都盖在内容之上，且只拦截视觉、不拦截点击 */
+body { position: relative; }
+
+/* 纸纹压印：同一张纸的纤维穿过文字、栏线和色块 */
+body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("assets/paper-texture.jpg") center top / cover no-repeat;
+    mix-blend-mode: multiply;
+    opacity: .20;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 折痕压过内容：两横两竖，先暗后亮，从标题和栏线上碾过去 */
+body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(180deg, transparent 31.8%, rgba(26, 20, 13, .08) 32.0% 32.15%, rgba(255, 252, 240, .14) 32.2% 32.35%, transparent 32.5%),
+        linear-gradient(180deg, transparent 67.8%, rgba(26, 20, 13, .07) 68.0% 68.15%, rgba(255, 252, 240, .12) 68.2% 68.35%, transparent 68.5%),
+        linear-gradient(90deg, transparent 33.3%, rgba(26, 20, 13, .07) 33.5% 33.65%, rgba(255, 252, 240, .12) 33.7% 33.85%, transparent 34.0%),
+        linear-gradient(90deg, transparent 66.3%, rgba(26, 20, 13, .06) 66.5% 66.65%, rgba(255, 252, 240, .10) 66.7% 66.85%, transparent 67.0%);
+}
+
+/* 内容去底板：让纸纹透出来，不再各自垫一块纸 */
+.upload-inner { background-color: rgba(255, 252, 242, .12); }
+.result-placeholder, .key-panel { background-color: rgba(255, 252, 242, .08); }
+
+/* 3D 舞台与吸顶导航不被纸纹压暗、不被折痕盖住 */
+#bx3dStage { position: relative; z-index: 3; }
+.nav-bar { z-index: 100; }
+
+/* 手机端：纸纹和折痕都减弱，保证小字好读 */
+@media (max-width: 600px) {
+    body::before { opacity: .12; }
+    body::after { opacity: .55; }
 }
 
 </style>
