@@ -1924,8 +1924,8 @@ body::before, body::after { content: none !important; display: none !important; 
 
 body {
     background-image:
-        /* 报纸噪点加重到 0.24，纤维感靠它，不靠折痕线 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.24'/%3E%3C/svg%3E"),
+        /* 报纸噪点降到 0.18，有纤维感但不脏 */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"),
         radial-gradient(ellipse 1000px 520px at 50% -60px, rgba(255, 252, 240, .50), transparent 65%),
         radial-gradient(ellipse 1000px 520px at 50% calc(100% + 60px), rgba(118, 90, 46, .16), transparent 60%),
         radial-gradient(circle 420px at 0 0, rgba(120, 92, 50, .12), transparent 70%),
