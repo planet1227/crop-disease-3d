@@ -2080,6 +2080,18 @@ body {
 }
 .nav-bar { padding-top: 14px; }
 
+/* ===== 目次底色与纸面统一（2026-11-17 第十二轮）=====
+   原来吸顶导航常年铺一条 rgba(233,224,202) 的浅色底条，
+   和纸纹底色不一致，看起来像贴了一条胶带。
+   现在：平时完全透明，和报头共用同一张纸；只有真正吸顶时才补纸色+纤维 */
+.nav-bar { background: transparent; }
+.nav-bar.is-stuck {
+    background-color: rgba(233, 220, 188, .97);
+    background-image: url("assets/paper-fibers.svg");
+    background-size: 320px 320px;
+    box-shadow: 0 8px 16px -12px rgba(60, 45, 20, .45);
+}
+
 </style>
 </head>
 <body>
@@ -3362,6 +3374,20 @@ setInterval(loadWeather, 10 * 60 * 1000);
 <div class="colophon">
     识稼日报　第一版　河北农业大学 · 农学　·　本报由 AI 辅助生成，仅供教学演示，不构成施药建议
 </div>
+
+<script>
+/* 吸顶检测：只负责给 .nav-bar 加/去 is-stuck 样式类，不触碰任何原有逻辑 */
+(function () {
+    var bar = document.querySelector('.nav-bar');
+    if (!bar || !('IntersectionObserver' in window)) return;
+    var sentinel = document.createElement('div');
+    sentinel.style.height = '1px';
+    bar.parentNode.insertBefore(sentinel, bar);
+    new IntersectionObserver(function (entries) {
+        bar.classList.toggle('is-stuck', entries[0].intersectionRatio === 0);
+    }, { threshold: [0] }).observe(sentinel);
+})();
+</script>
 
 </body>
 </html>
