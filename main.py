@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import requests
@@ -38,10 +38,100 @@ def _load_dotenv():
         print("【.env 读取失败】", repr(e))
 
 _load_dotenv()
+
+# ========= 本机密钥：在「关于」页里填，存同目录 本机密钥.json，优先级高于 .env =========
+KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "本机密钥.json")
+
+
+def _load_local_keys():
+    """网页里保存过的密钥，覆盖 .env 里的；没有这个文件就当没填。"""
+    if not os.path.exists(KEY_FILE):
+        return
+    try:
+        with io.open(KEY_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print("【本机密钥读取失败】", repr(e))
+        return
+    for field, env in (("deepseek", "DEEPSEEK_API_KEY"), ("qwen", "DASHSCOPE_API_KEY")):
+        v = str(data.get(field) or "").strip()
+        if v:
+            os.environ[env] = v
+
+
+_load_local_keys()
+
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
 if not DEEPSEEK_API_KEY or not DASHSCOPE_API_KEY:
-    print("【提示】没读到 DEEPSEEK_API_KEY / DASHSCOPE_API_KEY，请在同目录建 .env（参照 .env.example）")
+    print("【提示】没读到 DEEPSEEK_API_KEY / DASHSCOPE_API_KEY，可在「关于」页填入，或同目录建 .env（参照 .env.example）")
+
+
+def _key_state(k):
+    """只回尾号，绝不把完整密钥发到浏览器。"""
+    return {"set": bool(k), "tail": (k[-4:] if len(k) >= 8 else "")}
+
+
+def _is_local(request):
+    host = getattr(request.client, "host", "") or ""
+    return host in ("127.0.0.1", "::1", "localhost")
+
+
+@app.get("/api/keys")
+async def api_keys_get(request: Request):
+    return {
+        "deepseek": _key_state(DEEPSEEK_API_KEY),
+        "qwen": _key_state(DASHSCOPE_API_KEY),
+        "local": _is_local(request),
+    }
+
+
+@app.post("/api/keys")
+async def api_keys_set(data: dict, request: Request):
+    global DEEPSEEK_API_KEY, DASHSCOPE_API_KEY
+    if not _is_local(request):
+        return JSONResponse({"ok": False, "msg": "密钥只能在这台电脑上填写，手机端不开放修改"}, status_code=403)
+
+    ds = str(data.get("deepseek") or "").strip().strip('"').strip("'")
+    qw = str(data.get("qwen") or "").strip().strip('"').strip("'")
+
+    def bad(v):
+        return bool(v) and (len(v) < 12 or any(c.isspace() for c in v))
+
+    if bad(ds) or bad(qw):
+        return JSONResponse({"ok": False, "msg": "密钥格式不对：粘贴时别带空格或引号"}, status_code=400)
+    if not ds and not qw:
+        return JSONResponse({"ok": False, "msg": "两行都空着，没东西可保存"}, status_code=400)
+
+    saved = {}
+    if os.path.exists(KEY_FILE):
+        try:
+            with io.open(KEY_FILE, encoding="utf-8") as f:
+                saved = json.load(f) or {}
+        except Exception:
+            saved = {}
+    if ds:
+        saved["deepseek"] = ds
+        os.environ["DEEPSEEK_API_KEY"] = ds
+        DEEPSEEK_API_KEY = ds
+    if qw:
+        saved["qwen"] = qw
+        os.environ["DASHSCOPE_API_KEY"] = qw
+        DASHSCOPE_API_KEY = qw
+    try:
+        with io.open(KEY_FILE, "w", encoding="utf-8") as f:
+            json.dump(saved, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": "写入失败：" + str(e)}, status_code=500)
+
+    print("【密钥】已更新：DeepSeek=%s 千问=%s" % (bool(ds), bool(qw)))
+    return {
+        "ok": True,
+        "msg": "已保存，下次识病和问答就生效了",
+        "deepseek": _key_state(DEEPSEEK_API_KEY),
+        "qwen": _key_state(DASHSCOPE_API_KEY),
+        "local": True,
+    }
 # ================================================================
 
 DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"

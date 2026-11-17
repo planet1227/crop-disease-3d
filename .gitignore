@@ -2,6 +2,7 @@
 .env
 .env.local
 *.env
+本机密钥.json
 
 # ===== Python =====
 __pycache__/
