@@ -2270,6 +2270,53 @@ body {
    全页段落统一缩进两格（列表不动，缩进交给项目符号） */
 .article p { text-indent: 2em; }
 
+/* ===== 识别结果占位填充（2026-11-17 第二十轮）=====
+   右栏识别前只有两行字，大片空白。补上识病流程、拍摄要点与作物范围，
+   全部放在 #resultPlaceholder 内，识别出结果后随占位一起消失，不挤正文 */
+.rp-flow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(26, 20, 13, .18);
+}
+.rp-step { text-align: center; padding: 0 10px; }
+.rp-step + .rp-step { border-left: 1px solid rgba(26, 20, 13, .14); }
+.rp-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(139, 0, 0, .55);
+    color: var(--red);
+    border-radius: 50%;
+    font-size: 12px;
+    margin-bottom: 9px;
+}
+.rp-step b { display: block; font-size: 15px; letter-spacing: 2px; color: var(--ink); }
+.rp-step i { display: block; font-style: normal; font-size: 12px; line-height: 1.8; color: var(--ink-soft); margin-top: 6px; }
+.rp-tips { margin-top: 26px; }
+.rp-tips-title { font-size: 14px; font-weight: 700; letter-spacing: 3px; color: var(--ink); text-align: center; margin-bottom: 12px; }
+.rp-tips-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rp-tips-grid span {
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 7px 4px;
+    border: 1px dashed rgba(26, 20, 13, .25);
+    border-radius: 10px;
+    background: rgba(255, 252, 242, .18);
+}
+.rp-crops { margin-top: 22px; text-align: center; font-size: 12px; letter-spacing: 2px; color: var(--ink-soft); }
+@media (max-width: 600px) {
+    .rp-step { padding: 0 6px; }
+    .rp-step b { font-size: 14px; letter-spacing: 1px; }
+    .rp-step i { font-size: 11.5px; }
+    .rp-tips-grid { grid-template-columns: repeat(2, 1fr); }
+    .rp-crops { letter-spacing: 1px; }
+}
+
 </style>
 </head>
 <body>
@@ -2437,6 +2484,18 @@ body {
                         <div class="result-placeholder" id="resultPlaceholder">
                             <div class="rp-title">◆ 本期识病 ◆</div>
                             <div class="rp-text">上传一张叶片照片，本报为你辨病开方。<br>聚焦病斑、光线充足，认得更准。</div>
+                            <div class="rp-flow">
+                                <div class="rp-step"><span class="rp-num">壹</span><b>拍叶片</b><i>聚焦病斑，叶片平展</i></div>
+                                <div class="rp-step"><span class="rp-num">贰</span><b>AI 辨病</b><i>秒出结果，指出病症</i></div>
+                                <div class="rp-step"><span class="rp-num">叁</span><b>看开方</b><i>通俗建议，能下地用</i></div>
+                            </div>
+                            <div class="rp-tips">
+                                <div class="rp-tips-title">拍得好，才认得准</div>
+                                <div class="rp-tips-grid">
+                                    <span>光线充足</span><span>病斑居中</span><span>叶片平展</span><span>背景简洁</span>
+                                </div>
+                            </div>
+                            <div class="rp-crops">粮食 · 经济作物 · 蔬菜 · 果树，30 种作物可识</div>
                         </div>
                     </div>
                     <div class="clear-row">
