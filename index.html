@@ -2002,6 +2002,69 @@ body {
     .weather-fold { border-radius: var(--r-md); }
 }
 
+/* ===== 线条协调（2026-11-17 第十轮）=====
+   原则：线随内容走，不要通通拉满；长线的两端要收、要淡出 */
+
+/* 1) 栏目标题：通栏双线改成题下 56px 短线，视觉重心回到字上 */
+.section-title { position: relative; border-bottom: none; padding-bottom: 12px; }
+.section-title::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(26, 20, 13, .42);
+}
+
+/* 2) 页签下的线只保留到页签本身的宽度，不再横贯整栏 */
+.tab-bar { width: fit-content; border-bottom: 1px solid rgba(26, 20, 13, .30); }
+
+/* 3) 主区中缝与天气中缝：竖线两端淡出，不再一竿子到底 */
+.main-left {
+    border-right: 1px solid;
+    border-image: linear-gradient(180deg, transparent, rgba(26, 20, 13, .24) 14%, rgba(26, 20, 13, .24) 86%, transparent) 1;
+}
+.news-item {
+    border-right: 1px solid;
+    border-image: linear-gradient(180deg, transparent, rgba(26, 20, 13, .20) 20%, rgba(26, 20, 13, .20) 80%, transparent) 1;
+}
+.news-item:last-child { border-right: none; border-image: none; }
+
+/* 4) 要目条：上下线收短到版心 72% 并居中，不再顶到两边 */
+.topic {
+    border-top: none;
+    border-bottom: none;
+    background-image:
+        linear-gradient(rgba(26, 20, 13, .26), rgba(26, 20, 13, .26)),
+        linear-gradient(rgba(26, 20, 13, .26), rgba(26, 20, 13, .26));
+    background-size: 72% 1px, 72% 1px;
+    background-position: center top, center bottom;
+    background-repeat: no-repeat, no-repeat;
+}
+
+/* 5) 逐时简报：摘要上方那条虚线与栏头分隔线重复，去掉一条 */
+.hourly-head { border-bottom: 1px solid rgba(26, 20, 13, .22); }
+.hourly-summary { border-top: none; }
+
+/* 6) 报脚：线收短到 46% 居中，收尾更轻 */
+.colophon {
+    border-top: none;
+    background-image: linear-gradient(rgba(26, 20, 13, .22), rgba(26, 20, 13, .22));
+    background-size: 46% 1px;
+    background-position: center top;
+    background-repeat: no-repeat;
+}
+
+/* 7) 手机/平板是竖排栏目，不要中缝竖线 */
+@media (max-width: 768px) {
+    .main-left { border-right: none; border-image: none; }
+}
+@media (max-width: 600px) {
+    .news-item { border-right: none; border-image: none; }
+}
+
 </style>
 </head>
 <body>
