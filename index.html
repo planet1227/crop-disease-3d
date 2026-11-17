@@ -1924,15 +1924,17 @@ body::before, body::after { content: none !important; display: none !important; 
 
 body {
     background-image:
-        /* 报纸噪点降到 0.18，有纤维感但不脏 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"),
+        /* 噪点降到 0.10，只留一点底糙 */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.10'/%3E%3C/svg%3E"),
+        /* 纸纤维：380 根细丝，长短粗细不一、深浅交错，纤维感靠这层 */
+        url("assets/paper-fibers.svg"),
         radial-gradient(ellipse 1000px 520px at 50% -60px, rgba(255, 252, 240, .50), transparent 65%),
         radial-gradient(ellipse 1000px 520px at 50% calc(100% + 60px), rgba(118, 90, 46, .16), transparent 60%),
         radial-gradient(circle 420px at 0 0, rgba(120, 92, 50, .12), transparent 70%),
         radial-gradient(circle 420px at 100% 100%, rgba(120, 92, 50, .14), transparent 70%);
-    background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-    background-size: auto, auto, auto, auto, auto;
-    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+    background-size: auto, 320px 320px, auto, auto, auto, auto;
+    background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
     background-attachment: scroll;
 }
 
