@@ -10,6 +10,7 @@
 
 import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -125,13 +126,36 @@ def make_qr_page(port):
         return None, False
 
 
+# ---------- 打开浏览器：固定走 IE/Edge，不用系统默认浏览器 ----------
+# 默认浏览器可能是联想浏览器；按你的要求改成 IE。
+# 注意：Windows 11 已没有真正的 IE，iexplore.exe 会调起微软 Edge；
+# 都找不到时再退回系统默认浏览器，保证别人的电脑也能开。
+BROWSER_CANDIDATES = (
+    r"C:\Program Files\Internet Explorer\iexplore.exe",
+    r"C:\Program Files (x86)\Internet Explorer\iexplore.exe",
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+)
+
+
+def open_page(url):
+    for exe in BROWSER_CANDIDATES:
+        if os.path.exists(exe):
+            try:
+                subprocess.Popen([exe, url])
+                return
+            except Exception:
+                pass
+    webbrowser.open(url)
+
+
 # ---------- 1. 已经在跑：秒开，不重复起服务 ----------
 for p in PORTS:
     if is_running(p):
         write_addr_file(p)
         make_qr_page(p)          # 换过网也可以顺手刷新二维码，但不弹窗
         if not NO_BROWSER:
-            webbrowser.open(url_for("127.0.0.1", p))
+            open_page(url_for("127.0.0.1", p))
         sys.exit(0)
 
 # ---------- 2. 挑一个空闲端口 ----------
@@ -178,7 +202,7 @@ def open_browser_later():
     if NO_BROWSER:
         return
     try:
-        webbrowser.open(url_for("127.0.0.1", port))
+        open_page(url_for("127.0.0.1", port))
     except Exception:
         pass
     # 第一次生成二维码时，顺手把「扫码告示」也打开，省得自己找文件；之后不再弹
@@ -188,7 +212,7 @@ def open_browser_later():
             if os.name == "nt":
                 os.startfile(qr_page)          # 直接给路径，中文名/空格都不会出问题
             else:
-                webbrowser.open("file://" + qr_page)
+                open_page("file://" + qr_page)
         except Exception:
             pass
 
