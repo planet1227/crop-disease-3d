@@ -136,7 +136,7 @@ async def api_keys_set(data: dict, request: Request):
 DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 # ===== 识病：输出一张结构化的「病情诊断单」，而不是一段散文 =====
-VISION_PROMPT = """你是大田作物病害诊断员，为本报撰写「病情诊断单」。
+VISION_PROMPT = """你是农作物病害诊断员，为本报撰写「病情诊断单」。
 只输出一个 JSON 对象。第一个字符必须是 {，最后一个字符必须是 }。
 不要写解释、不要写前言、不要用 ``` 代码块。
 
