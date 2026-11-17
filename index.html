@@ -1538,6 +1538,135 @@ body {
     background: rgba(139, 0, 0, .06);
 }
 
+/* ===== 视觉精修层（2026-11-17 第三轮）=====
+   只覆盖样式：不改 DOM、不改 JS、不改文案、不动任何 id/class。
+   目标：字更实、层级更清、按钮输入框统一铅印风、手机留白更匀、触控更好点 */
+
+/* 1) 对比与字重：次要墨色再深一档，正文描边略增，笔画不再发虚 */
+:root { --ink-soft: #3f362a; }
+body {
+    line-height: 1.75;
+    -webkit-text-stroke: 0.3px currentColor;
+    text-rendering: optimizeLegibility;
+}
+.colophon, .key-hint, .hourly-update { color: var(--ink-soft); }
+
+/* 2) 长文本不顶出版心，媒体不撑破栏宽 */
+img, svg, video { max-width: 100%; }
+.article p, .article li, .key-hint, .hour-tip, .sub { overflow-wrap: anywhere; }
+
+/* 3) 层级：栏目标题收一条双细线，主区内边距统一 */
+.section-title {
+    font-size: 22px;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    padding-bottom: 9px;
+    border-bottom: 3px double rgba(26, 20, 13, .85);
+}
+.main-left, .main-right { padding: 24px; }
+
+/* 4) 按钮与输入框：方角、细墨线、纸底，像印上去的而不是浮起来的 */
+.btn {
+    min-height: 44px;
+    letter-spacing: 3px;
+    box-shadow: 2px 2px 0 rgba(26, 20, 13, .22);
+    transition: background .18s ease, color .18s ease, transform .12s ease, box-shadow .18s ease;
+}
+.btn:hover { transform: none; box-shadow: 2px 2px 0 rgba(26, 20, 13, .18); }
+.btn:active { transform: translateY(1px); box-shadow: 1px 1px 0 rgba(26, 20, 13, .25); }
+.btn-outline { box-shadow: none; }
+
+.crop-select,
+.chat-input-area input,
+.key-row input {
+    min-height: 44px;
+    background-color: rgba(255, 252, 242, .55);
+    border: 1px solid rgba(26, 20, 13, .45);
+    border-radius: 0;
+    color: var(--ink);
+    font-size: 14px;
+}
+.crop-select:focus,
+.chat-input-area input:focus,
+.key-row input:focus { border-color: var(--ink); }
+
+/* 键盘焦点：红色虚线框，和套红一路 */
+.btn:focus-visible,
+.hourly-toggle:focus-visible,
+.crop-select:focus-visible,
+.chat-input-area input:focus-visible,
+.key-row input:focus-visible,
+.nav-links a:focus-visible {
+    outline: 2px dashed var(--red);
+    outline-offset: 2px;
+}
+
+/* 5) 折叠区：按钮做成报上的小签条，并把可点范围向外扩一圈（看着小、点着大） */
+.hourly-toggle {
+    position: relative;
+    padding: 5px 12px;
+    border: 1px solid rgba(26, 20, 13, .55);
+    background: rgba(255, 252, 242, .35);
+    color: var(--ink);
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    transition: background .16s ease, color .16s ease;
+}
+.hourly-toggle::after {
+    content: '';
+    position: absolute;
+    inset: -8px -6px;
+}
+.hourly-toggle:hover { background: var(--ink); color: var(--paper); }
+.hourly-summary { line-height: 1.7; }
+.weather-fold .fold-title, .hourly-title { letter-spacing: 2px; }
+
+/* 6) 逐时条目：读数与建议的行距拉开，扫读不费劲 */
+.hourly-item .hour-weather, .hourly-item .hour-tip { line-height: 1.65; }
+
+/* 7) 动效统一收紧到 200ms 内；尊重系统减少动效设置 */
+.tab-pane.active { animation-duration: .18s; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* 8) 平板与手机：不许横向溢出 */
+@media (max-width: 768px) {
+    body { overflow-x: hidden; }
+    .main-left, .main-right { padding: 20px; }
+}
+
+/* 9) 手机竖屏：正文≥12px、关键数字更大、触控目标≥44px、留白节奏统一 */
+@media (max-width: 600px) {
+    .masthead .double-line { font-size: 12px; }
+    .section-title { font-size: 20px; letter-spacing: 2px; }
+    .main-left, .main-right { padding: 18px 16px; }
+
+    .news-item .big { font-size: 34px; }
+    .news-item .sub { font-size: 13px; }
+
+    .hourly-head { min-height: 48px; padding: 8px 12px; }
+    .hourly-update { font-size: 12px; }
+    .hourly-summary { font-size: 13px; padding: 10px 12px; }
+    .hourly-toggle { font-size: 12.5px; }
+
+    .weather-fold .fold-head { min-height: 48px; }
+    .weather-fold .fold-summary { font-size: 12.5px; line-height: 1.7; }
+
+    .nav-links a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .colophon { font-size: 12px; }
+    .key-hint { font-size: 12.5px; line-height: 1.8; }
+}
+
 </style>
 </head>
 <body>
