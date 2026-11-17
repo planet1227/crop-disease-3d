@@ -359,7 +359,7 @@ body { letter-spacing: 0.4px; }
 /* ================= 三栏资讯 ================= */
 .news-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     border: 2px solid var(--ink);
     margin-bottom: 12px;
     background: var(--paper-deep);
@@ -375,6 +375,9 @@ body { letter-spacing: 0.4px; }
 }
 .news-item:hover { background: rgba(250, 243, 224, 0.45); }
 .news-item:last-child { border-right: none; }
+/* 天气·节气折叠头：桌面不显示，只是把原来两栏包了一层，形态不变 */
+.weather-fold .fold-head,
+.weather-fold .fold-summary { display: none; }
 .news-item h3 {
     font-size: 14px;
     font-weight: 700;
@@ -1170,6 +1173,44 @@ input[type="file"] { display: none; }
     .masthead .double-line span:nth-child(3) { grid-area: right; text-align: right; }
     .masthead .double-line span:nth-child(4) { display: none; }
 
+    /* 天气·节气：手机上收成一条，点「展开」才铺开，手感和下面逐时简报一致 */
+    .weather-fold {
+        border: 2px solid var(--ink);
+        background: var(--paper-deep);
+        box-shadow: 0 5px 18px rgba(60, 45, 25, .10);
+        margin-bottom: 12px;
+    }
+    .weather-fold .fold-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    .weather-fold .fold-title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: var(--ink-soft);
+    }
+    .weather-fold .fold-summary {
+        display: block;
+        padding: 0 12px 10px;
+        font-size: 12px;
+        letter-spacing: .5px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+    }
+    .weather-fold.open .fold-summary { display: none; }
+    .weather-fold.open .fold-head { border-bottom: 1px solid var(--line); }
+    .weather-fold .news-grid {
+        border: none;
+        box-shadow: none;
+        margin-bottom: 0;
+        background: transparent;
+    }
+    .weather-fold .news-grid.collapsed { display: none; }
+
     /* 节气尺：24 格压到一行之内 */
     .term-ruler { padding: 7px 0 5px; gap: 0; overflow: hidden; }
     .term-ruler .term { font-size: 9.5px; padding-bottom: 5px; }
@@ -1543,22 +1584,25 @@ body {
 <div class="container">
     <!-- ================= 首页 ================= -->
     <div class="page active" id="page-home">
-        <!-- 三栏资讯 -->
-        <div class="news-grid">
-            <div class="news-item">
-                <h3>今日天气<span class="line"></span></h3>
-                <div class="big" id="weatherMain">--℃</div>
-                <div class="sub" id="weatherSub">加载中…</div>
-                <div class="sub" style="margin-top:6px; font-size:12px;" id="weatherExtra"></div>
+        <!-- 天气·节气：桌面两栏平铺，手机端可折叠（手感与下方逐时简报一致） -->
+        <div class="weather-fold" id="weatherFold">
+            <div class="fold-head" id="weatherHead">
+                <div class="fold-title">今日天气 · 当前节气</div>
+                <button class="hourly-toggle" id="weatherToggle" type="button">展开 ▾</button>
             </div>
-            <div class="news-item">
-                <h3>当前节气<span class="line"></span></h3>
-                <div class="big" id="solarMain">--</div>
-                <div class="sub" id="cropStage">--</div>
-            </div>
-            <div class="news-item">
-                <h3>此刻农事<span class="line"></span></h3>
-                <div class="now-tip" id="farmTip">加载中…</div>
+            <div class="fold-summary" id="weatherBrief">加载中…</div>
+            <div class="news-grid" id="weatherBody">
+                <div class="news-item">
+                    <h3>今日天气<span class="line"></span></h3>
+                    <div class="big" id="weatherMain">--℃</div>
+                    <div class="sub" id="weatherSub">加载中…</div>
+                    <div class="sub" style="margin-top:6px; font-size:12px;" id="weatherExtra"></div>
+                </div>
+                <div class="news-item">
+                    <h3>当前节气<span class="line"></span></h3>
+                    <div class="big" id="solarMain">--</div>
+                    <div class="sub" id="cropStage">--</div>
+                </div>
             </div>
         </div>
 
@@ -2528,6 +2572,7 @@ async function loadWeather() {
         document.getElementById('solarMain').textContent = solarItem.name;
         document.getElementById('cropStage').textContent = getCropStage();
         renderTermRuler(solarItem.name);
+        updateWeatherBrief();
 
         /* 定位当前小时在 hourly 数组中的位置 */
         const curKey = (j.current.time || "").substring(0, 13);
@@ -2545,11 +2590,8 @@ async function loadWeather() {
         };
         lastHourData = nowHourObj;
 
-        /* 此刻农事（第三栏） */
+        /* 逐时摘要（原第三栏「此刻农事」已并入这里，避免重复） */
         const nowTip = makeHourlyTip(nowHourObj);
-        document.getElementById('farmTip').innerHTML =
-            `<span class="tag">${curHour}时</span> ${nowTip}<br>` +
-            `<span style="color:#7a7466;font-size:12px;">${solarItem.tip}</span>`;
         document.getElementById('hourlySummary').innerHTML =
             `<span class="tag">${curHour}时</span> ${nowTip}`;
 
@@ -2595,10 +2637,8 @@ function renderFallback() {
     document.getElementById('solarMain').textContent = solarItem.name;
     document.getElementById('cropStage').textContent = getCropStage();
     renderTermRuler(solarItem.name);
+    updateWeatherBrief();
     const fallbackTip = makeHourlyTip(items[0]);
-    document.getElementById('farmTip').innerHTML =
-        '<span class="tag">' + h + '时</span> ' + fallbackTip + '<br>' +
-        '<span style="color:#7a7466;font-size:12px;">' + solarItem.tip + '</span>';
     document.getElementById('hourlySummary').innerHTML =
         '<span class="tag">' + h + '时</span> ' + fallbackTip;
     renderHourlyItems(items);
@@ -2635,6 +2675,45 @@ function setHourlyOpen(open) {
     hourlyToggleEl.textContent = open ? '收起 ▴' : '展开 ▾';
 }
 hourlyHeadEl.onclick = () => setHourlyOpen(!hourlyOpen);
+
+/* 天气·节气折叠：手机默认收起，桌面保持两栏平铺 */
+const weatherFoldEl = document.getElementById('weatherFold');
+const weatherBodyEl = document.getElementById('weatherBody');
+const weatherToggleEl = document.getElementById('weatherToggle');
+const weatherHeadEl = document.getElementById('weatherHead');
+const weatherBriefEl = document.getElementById('weatherBrief');
+const mobileMQ = window.matchMedia('(max-width: 600px)');
+
+function setWeatherOpen(open) {
+    weatherFoldEl.classList.toggle('open', open);
+    weatherBodyEl.classList.toggle('collapsed', !open);
+    weatherToggleEl.textContent = open ? '收起 ▴' : '展开 ▾';
+}
+
+function syncWeatherFold() {
+    if (mobileMQ.matches) {
+        setWeatherOpen(false);
+    } else {
+        weatherFoldEl.classList.remove('open');
+        weatherBodyEl.classList.remove('collapsed');
+    }
+}
+
+/* 收起时那行小字：温度 · 天气 ｜ 节气 · 苗情，数据跟着每次刷新走 */
+function updateWeatherBrief() {
+    const temp = document.getElementById('weatherMain').textContent;
+    const sky = (document.getElementById('weatherSub').textContent || '').split(' · ')[0];
+    const term = document.getElementById('solarMain').textContent;
+    const stage = document.getElementById('cropStage').textContent;
+    weatherBriefEl.textContent = temp + '　' + sky + ' ｜ ' + term + ' · ' + stage;
+}
+
+weatherHeadEl.onclick = function () {
+    if (mobileMQ.matches) setWeatherOpen(!weatherFoldEl.classList.contains('open'));
+};
+if (mobileMQ.addEventListener) mobileMQ.addEventListener('change', syncWeatherFold);
+else if (mobileMQ.addListener) mobileMQ.addListener(syncWeatherFold);
+syncWeatherFold();
 
 /* 首次加载 + 每 10 分钟刷新一次，整点前后及时更新 */
 loadWeather();
