@@ -1667,6 +1667,100 @@ img, svg, video { max-width: 100%; }
     .key-hint { font-size: 12.5px; line-height: 1.8; }
 }
 
+/* ===== 老报纸版式层（2026-11-17 第四轮）=====
+   针对还像「后台面板」的地方：粗黑框+投影、卡片底色、导航只占中间、报头太海报。
+   改法：通栏双线收口、栏线分隔、去投影、加竖向中缝折痕。仍然只动 CSS。 */
+
+/* 1) 纸面：在原有横折痕之上，再加一道竖向中缝折痕（十字折痕，像对折过的报纸） */
+body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+        linear-gradient(180deg, transparent 0 49.85%, rgba(120, 92, 50, .045) 49.9% 50.05%, transparent 50.1%),
+        linear-gradient(90deg, transparent 0 49.88%, rgba(120, 92, 50, .05) 49.94% 50.06%, transparent 50.12%),
+        radial-gradient(ellipse 120% 78% at 50% -6%, rgba(255, 252, 240, .55), transparent 62%),
+        radial-gradient(ellipse at 50% 104%, rgba(118, 90, 46, .20), transparent 58%),
+        radial-gradient(circle at 4% 8%, rgba(120, 92, 50, .18), transparent 42%),
+        radial-gradient(circle at 96% 92%, rgba(120, 92, 50, .20), transparent 44%);
+}
+
+/* 2) 报头：收紧节奏，专题改成上下细线夹住的「本期要目」条，不再像海报封面 */
+.masthead { padding-top: 16px; }
+.masthead .kicker { margin-bottom: 12px; padding-bottom: 6px; }
+.topic {
+    margin: 12px 0;
+    padding: 10px 0 12px;
+    border-top: 1px solid rgba(26, 20, 13, .35);
+    border-bottom: 1px solid rgba(26, 20, 13, .35);
+}
+.topic-tag { margin-bottom: 6px; }
+
+/* 3) 导航：通栏三等分，栏目之间竖线，像老报纸的目次条 */
+.nav-container { width: 100%; }
+.nav-links { width: 100%; }
+.nav-links a { flex: 1 1 0; text-align: center; justify-content: center; padding: 12px 10px; }
+.nav-links a:last-child { border-right: 1px solid #c9bca0; }
+
+/* 4) 天气·节气：去掉粗框和描边，改成上下双线的通栏，中间只留一道栏线 */
+.news-grid {
+    border: none;
+    outline: none;
+    background: transparent;
+    border-top: 3px double rgba(26, 20, 13, .78);
+    border-bottom: 3px double rgba(26, 20, 13, .78);
+}
+
+/* 5) 逐时简报：去掉卡片壳和投影，改成「通栏短讯」 */
+.hourly-section {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-top: 1px solid rgba(26, 20, 13, .45);
+    border-bottom: 3px double rgba(26, 20, 13, .78);
+    margin-bottom: 18px;
+}
+.hourly-head {
+    background: transparent;
+    border-bottom: 1px solid rgba(26, 20, 13, .45);
+    padding: 10px 2px;
+}
+.hourly-summary { padding: 10px 2px; }
+.hourly-item { background: transparent; }
+.hourly-item:hover { background: rgba(255, 252, 242, .35); }
+
+/* 6) 上传区：图版框做成「外虚内实」的双层框，像报纸预留的图片版位 */
+.upload-inner {
+    border: 1px dashed rgba(26, 20, 13, .50);
+    outline: 1px solid rgba(26, 20, 13, .20);
+    outline-offset: -6px;
+}
+
+/* 7) 主区中缝与报脚：细栏线 + 双线收尾 */
+.main-left { border-right: 1px solid rgba(26, 20, 13, .35); }
+.colophon { border-top: 3px double rgba(26, 20, 13, .45); }
+
+/* 8) 手机：报头再压低一点，让天气和识别区更早进屏 */
+@media (max-width: 600px) {
+    .masthead { padding-top: 12px; }
+    .topic { margin: 8px 0 10px; padding: 8px 0 10px; }
+    .hourly-head { padding: 8px 2px; }
+    .hourly-summary { padding: 10px 2px; }
+    .nav-links a { padding: 10px 6px; letter-spacing: 2px; }
+}
+
+/* 9) 主区与图版同样去投影、去厚框，和上面的通栏保持一致 */
+.main-grid {
+    border: 1px solid rgba(26, 20, 13, .50);
+    background: transparent;
+    box-shadow: none;
+}
+.upload-area {
+    border: 1px solid rgba(26, 20, 13, .45);
+    background: rgba(255, 252, 242, .22);
+    box-shadow: none;
+}
+.upload-area:hover { background: rgba(255, 252, 242, .40); box-shadow: none; }
+.upload-area.drag-over { box-shadow: inset 0 0 0 1px var(--red); }
+
 </style>
 </head>
 <body>
