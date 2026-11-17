@@ -1941,6 +1941,67 @@ body {
 /* 吸顶导航的背滤也关掉，滚动少一层合成开销 */
 .nav-bar { backdrop-filter: none; -webkit-backdrop-filter: none; }
 
+/* ===== 圆弧化（2026-11-17 第九轮）=====
+   统一圆角梯度：大版面 18、栏目 14、控件 10、签条胶囊。
+   只改外观，不动结构、不动 JS、不动文案 */
+:root {
+    --r-lg: 18px;
+    --r-md: 14px;
+    --r-sm: 10px;
+    --r-pill: 999px;
+}
+
+/* 版心外框与主区：大圆角，像个圆角纸版 */
+.container::before { border-radius: 20px; }
+.main-grid { border-radius: var(--r-lg); overflow: hidden; }
+
+/* 天气通栏、逐时简报：栏目级圆角，框线补齐成完整的圆角框 */
+.news-grid {
+    border: 1px solid rgba(26, 20, 13, .32);
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+.hourly-section {
+    border: 1px solid rgba(26, 20, 13, .32);
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+
+/* 上传图版：外框 16、内框 12，虚线也跟着圆 */
+.upload-area { border-radius: 16px; }
+.upload-inner { border-radius: 12px; }
+#preview-img { border-radius: 12px; }
+
+/* 结果占位、密钥面板 */
+.result-placeholder, .key-panel { border-radius: var(--r-md); }
+
+/* 按钮与输入控件：统一 10px，别再方得发硬 */
+.btn { border-radius: var(--r-sm); }
+.crop-select, .chat-input-area input, .key-row input { border-radius: var(--r-sm); }
+
+/* 折叠小签条：胶囊形，点小但看着软 */
+.hourly-toggle { border-radius: var(--r-pill); }
+
+/* 页签：上圆角，像圆角索引卡 */
+.tab-btn { border-radius: 10px 10px 0 0; }
+
+/* 目次导航：整体一个圆角条，去掉底部那条直线 */
+.nav-links {
+    border: 1px solid rgba(26, 20, 13, .28);
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+.nav-links a:last-child { border-right: none; }
+.nav-bar::after { content: none; display: none; }
+
+/* 栏题前的菱形改成小圆点，和圆角呼应 */
+.section-title::before { transform: none; border-radius: 50%; }
+
+/* 手机折叠框同样圆角 */
+@media (max-width: 600px) {
+    .weather-fold { border-radius: var(--r-md); }
+}
+
 </style>
 </head>
 <body>
