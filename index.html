@@ -1805,6 +1805,60 @@ body {
     }
 }
 
+/* ===== 线条微调与纸面跟随（2026-11-17 第六轮）===== */
+
+/* 1) 线条只比上一轮深半档，找回一点报纸的骨架感 */
+:root { --line: #bcae8d; }
+.container::before { border-color: rgba(26, 20, 13, .36); outline-color: rgba(26, 20, 13, .12); }
+.masthead::before { border-top-color: rgba(26, 20, 13, .52); }
+.masthead::after { border-bottom-color: rgba(26, 20, 13, .55); }
+.masthead .kicker { border-top-color: rgba(26, 20, 13, .24); border-bottom-color: rgba(26, 20, 13, .26); }
+.topic { border-top-color: rgba(26, 20, 13, .28); border-bottom-color: rgba(26, 20, 13, .28); }
+.nav-bar::after { border-bottom-color: rgba(26, 20, 13, .40); }
+.news-grid { border-top-color: rgba(26, 20, 13, .40); border-bottom-color: rgba(26, 20, 13, .40); }
+.hourly-section { border-top-color: rgba(26, 20, 13, .32); border-bottom-color: rgba(26, 20, 13, .40); }
+.hourly-head { border-bottom-color: rgba(26, 20, 13, .32); }
+.main-grid { border-color: rgba(26, 20, 13, .36); }
+.main-left { border-right-color: rgba(26, 20, 13, .28); }
+.section-title { border-bottom-color: rgba(26, 20, 13, .50); }
+.article h2 { border-bottom-color: rgba(26, 20, 13, .50); }
+.upload-area { border-color: rgba(26, 20, 13, .36); }
+.upload-inner { border-color: rgba(26, 20, 13, .40); outline-color: rgba(26, 20, 13, .14); }
+.colophon { border-top-color: rgba(26, 20, 13, .30); }
+.crop-select, .chat-input-area input, .key-row input { border-color: rgba(26, 20, 13, .38); }
+.hourly-toggle { border-color: rgba(26, 20, 13, .40); }
+.btn-outline { border-color: rgba(26, 20, 13, .55); }
+@media (max-width: 600px) { .weather-fold { border-color: rgba(26, 20, 13, .36); } }
+
+/* 2) 纸面跟随：噪点随鼠标轻轻视差，另有一束柔光跟着鼠标走。
+      位移量最大 ±7px，只动背景，不动版面；脚本只在有鼠标的设备上启用 */
+body {
+    --px: 0px;
+    --py: 0px;
+    --mx: 50vw;
+    --my: 35vh;
+    background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+        linear-gradient(180deg, transparent 0 49.85%, rgba(120, 92, 50, .045) 49.9% 50.05%, transparent 50.1%),
+        linear-gradient(90deg, transparent 0 49.88%, rgba(120, 92, 50, .05) 49.94% 50.06%, transparent 50.12%),
+        radial-gradient(ellipse at center, rgba(255, 252, 240, .22), rgba(255, 252, 240, 0) 70%),
+        radial-gradient(ellipse 120% 78% at 50% -6%, rgba(255, 252, 240, .55), transparent 62%),
+        radial-gradient(ellipse at 50% 104%, rgba(118, 90, 46, .20), transparent 58%),
+        radial-gradient(circle at 4% 8%, rgba(120, 92, 50, .18), transparent 42%),
+        radial-gradient(circle at 96% 92%, rgba(120, 92, 50, .20), transparent 44%);
+    background-position:
+        var(--px) var(--py),
+        0 0,
+        0 0,
+        calc(var(--mx) - 280px) calc(var(--my) - 200px),
+        calc(var(--px) * -0.6) calc(var(--py) * -0.6),
+        0 0,
+        0 0,
+        0 0;
+    background-size: auto, auto, auto, 560px 400px, auto, auto, auto, auto;
+    background-repeat: repeat, repeat, repeat, no-repeat, repeat, repeat, repeat, repeat;
+}
+
 </style>
 </head>
 <body>
@@ -3087,6 +3141,24 @@ setInterval(loadWeather, 10 * 60 * 1000);
 <div class="colophon">
     识稼日报　第一版　河北农业大学 · 农学　·　本报由 AI 辅助生成，仅供教学演示，不构成施药建议
 </div>
+
+<script>
+/* 纸面视差：独立小段，不读取也不改动任何原有变量与函数。
+   鼠标移动时直接改写四个 CSS 变量，纸纹与柔光立即跟随，位移很小所以不需要额外动画。
+   只在有鼠标的设备上启用；系统开「减少动效」时自动停用。 */
+(function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    var b = document.body;
+    window.addEventListener('pointermove', function (e) {
+        if (e.pointerType !== 'mouse') return;
+        b.style.setProperty('--px', ((e.clientX / window.innerWidth - 0.5) * 14).toFixed(2) + 'px');
+        b.style.setProperty('--py', ((e.clientY / window.innerHeight - 0.5) * 14).toFixed(2) + 'px');
+        b.style.setProperty('--mx', e.clientX + 'px');
+        b.style.setProperty('--my', e.clientY + 'px');
+    }, { passive: true });
+})();
+</script>
 
 </body>
 </html>
