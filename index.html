@@ -2252,6 +2252,24 @@ body {
 /* 导航上方的呼吸留白改由报头下边距承担，吸顶时不再额外占高 */
 .masthead { margin-bottom: 14px; }
 
+/* ===== 结果占位排版（2026-11-17 第十八轮）=====
+   390 下「上传一张叶片照片，本报为你辨病开方。」被挤成单独一个「方。」，
+   原因是内边距 26px×2 + 1px 字距，可用宽度不够。
+   收紧内边距与字距，让这句稳稳落在一行 */
+.result-placeholder { padding: 30px 20px; }
+.result-placeholder .rp-title { font-size: 18px; letter-spacing: 4px; margin-bottom: 10px; }
+.result-placeholder .rp-text { font-size: 14.5px; line-height: 1.95; letter-spacing: .5px; text-wrap: pretty; }
+@media (max-width: 600px) {
+    .result-placeholder { padding: 24px 14px; }
+    .result-placeholder .rp-title { font-size: 17px; letter-spacing: 3px; }
+    .result-placeholder .rp-text { font-size: 14.5px; letter-spacing: 0; line-height: 1.9; }
+}
+
+/* ===== 说明页段落缩进统一（2026-11-17 第十九轮）=====
+   只有第一段 .lead 有首行缩进，其余段落顶格，读起来不齐。
+   全页段落统一缩进两格（列表不动，缩进交给项目符号） */
+.article p { text-indent: 2em; }
+
 </style>
 </head>
 <body>
