@@ -2065,6 +2065,21 @@ body {
     .news-item { border-right: none; border-image: none; }
 }
 
+/* ===== 报头与目次的衔接（2026-11-17 第十一轮）=====
+   粗双线的端部不再顶死圆角：两端羽化淡出，线随视线自然收掉；
+   导航上方加一道留白，让「直线」与「弧角」之间有一口气 */
+.masthead::after {
+    border-bottom: none;
+    height: 5px;
+    background-image:
+        linear-gradient(90deg, transparent, rgba(26, 20, 13, .34) 12%, rgba(26, 20, 13, .34) 88%, transparent),
+        linear-gradient(90deg, transparent, rgba(26, 20, 13, .20) 18%, rgba(26, 20, 13, .20) 82%, transparent);
+    background-size: 100% 1px, 100% 1px;
+    background-position: 0 0, 0 4px;
+    background-repeat: no-repeat, no-repeat;
+}
+.nav-bar { padding-top: 14px; }
+
 </style>
 </head>
 <body>
