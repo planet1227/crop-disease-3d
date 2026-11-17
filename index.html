@@ -1317,6 +1317,178 @@ input[type="file"] { display: none; }
     letter-spacing: 1px;
 }
 
+/* ============================================================
+   旧报纸增强层（2026-11-17）
+   只做覆盖，不改动原有结构与交互；目标是更像一张放了很多年的报纸：
+   纸更旧、版心有双框、报头铅印套色、印章是白文印、报脚有胶印信息
+   ============================================================ */
+body {
+    background-color: #e9dcbc;
+    background-image:
+        /* 纸纤维噪点，比原版更重 */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+        /* 版心中间那道横折痕 */
+        linear-gradient(180deg, transparent 0 49.85%, rgba(120, 92, 50, .045) 49.9% 50.05%, transparent 50.1%),
+        /* 四角与边缘的老化暗角 */
+        radial-gradient(ellipse 120% 78% at 50% -6%, rgba(255, 252, 240, .55), transparent 62%),
+        radial-gradient(ellipse at 50% 104%, rgba(118, 90, 46, .20), transparent 58%),
+        radial-gradient(circle at 4% 8%, rgba(120, 92, 50, .18), transparent 42%),
+        radial-gradient(circle at 96% 92%, rgba(120, 92, 50, .20), transparent 44%);
+    background-attachment: fixed;
+}
+
+/* 版心：外粗内细的双框，像老报纸的版框
+   注意框要压在正文内容边上，跟报头的光带、粗双线对齐，所以用 ::before 画 */
+.container {
+    border: none;
+    outline: none;
+    background: none;
+    box-shadow: none;
+    position: relative;
+}
+.container::before {
+    content: '';
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    top: 0;
+    bottom: 8px;
+    border: 1px solid rgba(36, 31, 24, .50);
+    outline: 1px solid rgba(36, 31, 24, .14);
+    outline-offset: 4px;
+    pointer-events: none;
+}
+
+/* 报头：顶上一道细线，标题做铅印套色错位 */
+.masthead::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 40px;
+    right: 40px;
+    border-top: 6px double rgba(36, 31, 24, .72);
+}
+.masthead::after {
+    border-bottom: 6px double var(--ink);
+}
+/* 报头压一道细白，让粗双线不贴死内容 */
+.masthead { padding-top: 26px; }
+.masthead h1 {
+    text-shadow:
+        1.5px 0.6px 0 rgba(139, 0, 0, .15),
+        -0.9px -0.4px 0 rgba(36, 31, 24, .18),
+        0 2px 2px rgba(120, 95, 55, .18);
+}
+.masthead .kicker {
+    border-top: 1px solid rgba(36, 31, 24, .28);
+    border-bottom: 1px dashed rgba(36, 31, 24, .30);
+    padding-top: 7px;
+}
+
+/* 印章：改成白文印（红地白字），更像盖上去的 */
+.seal-mast {
+    color: #fdf6e6;
+    background: rgba(139, 0, 0, .88);
+    border-color: rgba(139, 0, 0, .88);
+    box-shadow:
+        inset 0 0 0 1px rgba(253, 246, 230, .48),
+        0 2px 7px rgba(139, 0, 0, .22);
+    transform: rotate(-6.5deg);
+}
+
+/* 文章页：小标加套红方点，正文栏线更细 */
+.article h3::before {
+    content: '◆';
+    color: var(--red);
+    font-size: .58em;
+    margin-right: 8px;
+    vertical-align: .18em;
+}
+.article h2 {
+    border-bottom: 3px double rgba(36, 31, 24, .80);
+    color: var(--ink);
+}
+.article p {
+    text-align: justify;
+    text-justify: inter-ideograph;
+}
+
+/* 按钮：方角 + 印刷感的双边 */
+.btn { border-radius: 0; }
+.btn-outline {
+    border-width: 3px;
+    border-style: double;
+}
+
+/* 三栏资讯：报纸框是外粗内细的两道框 */
+.news-grid {
+    border: 2px solid rgba(36, 31, 24, .82);
+    outline: 1px solid rgba(36, 31, 24, .28);
+    outline-offset: 3px;
+}
+
+/* 报脚：版次与胶印信息 */
+.colophon {
+    max-width: 1240px;
+    margin: 0 auto 30px;
+    padding: 11px 40px 0;
+    border-top: 1px dashed rgba(36, 31, 24, .32);
+    font-size: 11.5px;
+    letter-spacing: 2px;
+    color: #6b5f52;
+    text-align: center;
+    line-height: 2;
+}
+
+@media (max-width: 720px) {
+    .container::before {
+        left: 6px;
+        right: 6px;
+        bottom: 4px;
+        outline-offset: 2px;
+        border-color: rgba(36, 31, 24, .45);
+    }
+    .masthead::before { left: 12px; right: 12px; }
+    .colophon { padding: 10px 14px 0; font-size: 11px; letter-spacing: 1px; }
+}
+@media (max-width: 600px) {
+    /* 24 个节气在 390px 宽里必然互相压字，手机端直接收起，
+       节气信息由上方的「当前节气」栏承担 */
+    .term-ruler { display: none; }
+}
+
+/* ===== 字重与字号（2026-11-17 第二轮）=====
+   屏幕上细宋体笔画太细，看着发虚：加 0.28px 描边把笔画压实，
+   字号一律保持原样不动（面向农户，要大要好认）。
+   只把密钥面板里那串申请网址缩小，免得占掉半屏 */
+body {
+    color: #1a140d;
+    -webkit-text-stroke: 0.28px currentColor;
+}
+/* 墨色再压深一档，次要文字也别发灰 */
+:root {
+    --ink: #1a140d;
+    --ink-soft: #4a4134;
+}
+
+/* 密钥面板里的申请入口：短文字「点这里申请」标红，点了直接跳转 */
+.key-hint a {
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(139, 0, 0, .55);
+    padding-bottom: 1px;
+    margin: 0 2px;
+    white-space: nowrap;
+}
+.key-hint a:hover {
+    color: #5c0000;
+    border-bottom-color: #5c0000;
+    background: rgba(139, 0, 0, .06);
+}
+
 </style>
 </head>
 <body>
@@ -1567,7 +1739,7 @@ input[type="file"] { display: none; }
                     <span class="key-msg" id="keyMsg"></span>
                 </div>
                 <p class="key-hint" style="margin:14px 0 0;">
-                    申请地址：DeepSeek 平台 <span style="word-break:break-all;">platform.deepseek.com/api_keys</span>；千问（阿里云百炼）<span style="word-break:break-all;">bailian.console.aliyun.com</span>。密钥只存在运行服务的这台电脑上，不会写进网页。
+                    申请地址：DeepSeek 密钥 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">点这里申请 →</a>；千问密钥 <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener">点这里申请 →</a>。<br>密钥只存在运行服务的这台电脑上，不会写进网页。
                 </p>
             </div>
             <p style="margin-top:44px; text-align:center; font-size:18px; color:#8B0000; letter-spacing:5px;">
@@ -2564,6 +2736,10 @@ setInterval(loadWeather, 10 * 60 * 1000);
     refresh();
 })();
 </script>
+
+<div class="colophon">
+    识稼日报　第一版　河北农业大学 · 农学　·　本报由 AI 辅助生成，仅供教学演示，不构成施药建议
+</div>
 
 </body>
 </html>

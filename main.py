@@ -332,7 +332,12 @@ def clean_diag(d):
 
 @app.get("/")
 async def index():
-    return FileResponse("index.html")
+    # 别让浏览器缓存首页：改了页面刷新就能看到，手机不留在旧版本
+    return FileResponse("index.html", headers={
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    })
 
 
 # ===== 天气：先用国内源（校园网/热点常连不上境外接口）=====
