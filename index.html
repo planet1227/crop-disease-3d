@@ -1761,6 +1761,50 @@ body {
 .upload-area:hover { background: rgba(255, 252, 242, .40); box-shadow: none; }
 .upload-area.drag-over { box-shadow: inset 0 0 0 1px var(--red); }
 
+/* ===== 线条减弱层（2026-11-17 第五轮）=====
+   报纸感靠版式与纸色，不靠粗黑线：栏线、框线、双线统一降一到两档，文字不变 */
+:root { --line: #c3b698; }   /* 栏线比原来更浅更柔 */
+
+/* 版心外框 */
+.container::before { border-color: rgba(26, 20, 13, .28); outline-color: rgba(26, 20, 13, .08); }
+
+/* 报头：粗双线细一号、浅一号；要目条与报耳的线也降下来 */
+.masthead::before { border-top: 3px double rgba(26, 20, 13, .42); }
+.masthead::after { border-bottom: 3px double rgba(26, 20, 13, .45); }
+.masthead .kicker { border-top-color: rgba(26, 20, 13, .18); border-bottom-color: rgba(26, 20, 13, .20); }
+.topic { border-top-color: rgba(26, 20, 13, .20); border-bottom-color: rgba(26, 20, 13, .20); }
+
+/* 目次导航下的双线改细线 */
+.nav-bar::after { border-bottom: 1px solid rgba(26, 20, 13, .30); }
+
+/* 天气通栏、逐时简报：双线收口改成细线 */
+.news-grid { border-top: 1px solid rgba(26, 20, 13, .30); border-bottom: 1px solid rgba(26, 20, 13, .30); }
+.hourly-section { border-top-color: rgba(26, 20, 13, .24); border-bottom: 1px solid rgba(26, 20, 13, .30); }
+.hourly-head { border-bottom-color: rgba(26, 20, 13, .24); }
+
+/* 主区、栏题、图版、报脚 */
+.main-grid { border-color: rgba(26, 20, 13, .28); }
+.main-left { border-right-color: rgba(26, 20, 13, .20); }
+.section-title { border-bottom: 3px double rgba(26, 20, 13, .40); }
+.article h2 { border-bottom-color: rgba(26, 20, 13, .40); }
+.upload-area { border-color: rgba(26, 20, 13, .28); }
+.upload-inner { border-color: rgba(26, 20, 13, .32); outline-color: rgba(26, 20, 13, .10); }
+.colophon { border-top: 1px solid rgba(26, 20, 13, .22); }
+
+/* 控件与签条 */
+.crop-select, .chat-input-area input, .key-row input { border-color: rgba(26, 20, 13, .30); }
+.hourly-toggle { border-color: rgba(26, 20, 13, .32); }
+.btn-outline { border: 1px solid rgba(26, 20, 13, .45); }
+
+/* 手机折叠框同样去粗框去投影 */
+@media (max-width: 600px) {
+    .weather-fold {
+        border: 1px solid rgba(26, 20, 13, .28);
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
 </style>
 </head>
 <body>
