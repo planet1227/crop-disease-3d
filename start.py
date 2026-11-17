@@ -19,6 +19,13 @@ import webbrowser
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(HERE)              # 不切目录，fonts / lib / index.html 会 404
 
+# 随包分发的绿色 Python 带 python310._pth，属于「隔离模式」：
+# sys.path 只认 _pth 里写死的那几个目录，既不认脚本所在目录，也不认当前目录。
+# 所以这里手动把项目根塞进去，否则 uvicorn 找不到同目录的 main.py，
+# 报 ERROR: Could not import module "main"。
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+
 QUIET = "--quiet" in sys.argv
 PORTS = (80, 8000, 8080, 5000)
 MARK = "识稼日报"
@@ -38,7 +45,9 @@ if QUIET:
             pass
 elif sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding="gbk", errors="replace")
+        # 只放宽编码，不改编码。Windows 控制台从 3.6 起是 UTF-8 直出，
+        # 强行 reconfigure(gbk) 反而会把中文变成 ≈≈ ◇◇ 这种乱码。
+        sys.stdout.reconfigure(errors="replace")
     except Exception:
         pass
 
@@ -153,8 +162,9 @@ def open_browser_later():
 threading.Thread(target=open_browser_later, daemon=True).start()
 
 import uvicorn
+import main          # 先把模块导进来，报错能一眼看清是缺文件还是环境问题
 
 try:
-    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="warning")
+    uvicorn.run(main.app, host="0.0.0.0", port=port, log_level="warning")
 except KeyboardInterrupt:
     pass
