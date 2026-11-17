@@ -2211,6 +2211,25 @@ body {
 /* 输入控件统一最亮纸色，在哪块纸面上都读得清 */
 .crop-select, .chat-input-area input, .key-row input { background-color: var(--panel-input); }
 
+/* ===== 标题字重统一（2026-11-17 第十六轮）=====
+   「今日天气·当前节气」和「今日逐时农事简报」都是二级栏目题，
+   之前一个浅墨无描边、一个主墨加 0.5px 描边，看着一细一粗。
+   现在统一：同一字体、同字号、同字重、同描边、同墨色 */
+.weather-fold .fold-title {
+    font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", "FangSong", serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--ink);
+    -webkit-text-stroke: 0.5px currentColor;
+}
+/* 与逐时简报同款的红色起首符，题头节奏一致 */
+.weather-fold .fold-title::before { content: '❖ '; color: var(--red); }
+@media (max-width: 600px) {
+    .weather-fold .fold-title,
+    .hourly-title { font-size: 13px; letter-spacing: 2px; }
+}
+
 </style>
 </head>
 <body>
