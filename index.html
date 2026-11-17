@@ -2230,6 +2230,28 @@ body {
     .hourly-title { font-size: 13px; letter-spacing: 2px; }
 }
 
+/* ===== iOS 安全区与吸顶避让（2026-11-17 第十七轮）=====
+   苹果全屏模式下状态栏会压住导航；把安全区留出来，
+   并在状态栏区域铺同色纸，滚动时文字不会跑到刘海下面 */
+body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.nav-bar { top: env(safe-area-inset-top, 0px); padding-top: 0; }
+.nav-bar::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background: #E9DCBC;
+    z-index: -1;
+    pointer-events: none;
+}
+/* 导航上方的呼吸留白改由报头下边距承担，吸顶时不再额外占高 */
+.masthead { margin-bottom: 14px; }
+
 </style>
 </head>
 <body>
