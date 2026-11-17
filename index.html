@@ -2,7 +2,15 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- 苹果「添加到主屏幕」后全屏打开，像 App 一样 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="识稼日报">
+<meta name="theme-color" content="#e9dcbc">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="assets/apple-touch-icon.png">
 <title>识稼日报 · 作物病害智能识别</title>
 <script src="lib/marked.min.js"></script>
 <script src="lib/html2canvas.min.js"></script>
@@ -2092,6 +2100,57 @@ body {
     box-shadow: 0 8px 16px -12px rgba(60, 45, 20, .45);
 }
 
+/* ===== 历史搜索面板（2026-11-17 第十三轮）===== */
+.history-section {
+    margin-top: 22px;
+    padding: 16px 18px 10px;
+    border: 1px solid rgba(26, 20, 13, .28);
+    border-radius: var(--r-md);
+    background: rgba(255, 252, 242, .10);
+}
+.history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.history-head .section-title { font-size: 20px; margin-bottom: 14px; }
+.history-clear {
+    border: 1px solid rgba(26, 20, 13, .30);
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    min-height: 30px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+}
+.history-clear:hover { color: var(--red); border-color: rgba(139, 0, 0, .45); }
+.history-empty { font-size: 13px; line-height: 1.9; color: var(--ink-soft); padding: 2px 0 10px; }
+.history-list { list-style: none; display: flex; flex-direction: column; }
+.history-list li { border-top: 1px dashed rgba(26, 20, 13, .16); }
+.history-list li:first-child { border-top: none; }
+.history-item {
+    width: 100%;
+    display: block;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px 2px;
+    min-height: 44px;
+    font-family: inherit;
+}
+.history-item .q {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-all;
+}
+.history-item .t { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 4px; letter-spacing: 1px; }
+.history-item:hover .q { color: var(--red); }
+
 </style>
 </head>
 <body>
@@ -2231,6 +2290,16 @@ body {
                         <img id="preview-img" alt="病害叶片预览">
                     </div>
                     <input type="file" id="fileInput" accept="image/*">
+                </div>
+
+                <!-- 历史搜索：只存在本机 localStorage，不上传 -->
+                <div class="history-section" id="historySection">
+                    <div class="history-head">
+                        <div class="section-title history-title">历史搜索</div>
+                        <button class="history-clear" id="historyClear" type="button">清空</button>
+                    </div>
+                    <div class="history-empty" id="historyEmpty">还没有问过问题。<br>在右侧「农事问答」里提问后，会自动记在这里，点一条就能再问。</div>
+                    <ul class="history-list" id="historyList"></ul>
                 </div>
             </div>
 
@@ -3386,6 +3455,77 @@ setInterval(loadWeather, 10 * 60 * 1000);
     new IntersectionObserver(function (entries) {
         bar.classList.toggle('is-stuck', entries[0].intersectionRatio === 0);
     }, { threshold: [0] }).observe(sentinel);
+})();
+</script>
+
+<script>
+/* 历史搜索：独立功能，只读取 #chatInput 的值并记录，
+   不改动任何原有发送逻辑；数据只存本机 localStorage */
+(function () {
+    var KEY = 'shijia_history_v1', MAX = 30;
+    var list = document.getElementById('historyList');
+    var empty = document.getElementById('historyEmpty');
+    var clearBtn = document.getElementById('historyClear');
+    var input = document.getElementById('chatInput');
+    var send = document.getElementById('chatSend');
+    if (!list || !input || !send) return;
+
+    function load() {
+        try {
+            var a = JSON.parse(localStorage.getItem(KEY) || '[]');
+            return Array.isArray(a) ? a : [];
+        } catch (e) { return []; }
+    }
+    function save(a) {
+        try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, MAX))); } catch (e) {}
+    }
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function fmt(t) {
+        var d = new Date(t);
+        return (d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function render() {
+        var a = load();
+        list.innerHTML = '';
+        empty.style.display = a.length ? 'none' : 'block';
+        a.forEach(function (it) {
+            var li = document.createElement('li');
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'history-item';
+            var q = document.createElement('span');
+            q.className = 'q';
+            q.textContent = it.q;
+            var t = document.createElement('span');
+            t.className = 't';
+            t.textContent = fmt(it.t);
+            b.appendChild(q);
+            b.appendChild(t);
+            b.addEventListener('click', function () {
+                var tab = document.querySelector('.tab-btn[data-tab="chat"]');
+                if (tab) tab.click();
+                input.value = it.q;
+                input.focus();
+            });
+            li.appendChild(b);
+            list.appendChild(li);
+        });
+    }
+    function record() {
+        var q = (input.value || '').trim();
+        if (!q) return;
+        var a = load().filter(function (it) { return it.q !== q; });
+        a.unshift({ q: q, t: Date.now() });
+        save(a);
+        render();
+    }
+    send.addEventListener('click', record);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') record(); });
+    clearBtn.addEventListener('click', function () {
+        if (!load().length) return;
+        if (window.confirm('确定清空历史搜索吗？')) { save([]); render(); }
+    });
+    render();
 })();
 </script>
 

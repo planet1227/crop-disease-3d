@@ -19,6 +19,8 @@ app.mount("/fonts", StaticFiles(directory="fonts"), name="fonts")
 # 本地化的第三方脚本，手机不依赖 CDN
 app.mount("/lib", StaticFiles(directory="lib"), name="lib")
 app.mount("/models", StaticFiles(directory="models"), name="models")
+# 纸纤维、苹果主屏幕图标等本地装饰资源
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # ========= 密钥：从环境变量读，本地开发写在同目录 .env（不进仓库）=========
 def _load_dotenv():
