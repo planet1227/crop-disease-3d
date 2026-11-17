@@ -1147,18 +1147,27 @@ input[type="file"] { display: none; }
     .topic-title { font-size: 22px; letter-spacing: 3px; }
     .topic-sub { font-size: 11.5px; letter-spacing: 1px; }
 
-    /* 四格栏目条：日期独占一行，下面两格并排 */
+    /* 报耳：日期独占一行居中，下面左「大田作物专刊」右「小麦·玉米」，
+       两格各自贴边，不能继承报头的居中，否则会缩在中间 */
     .masthead .double-line {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 5px 8px;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "date date"
+            "left right";
+        row-gap: 5px;
         font-size: 11.5px;
         letter-spacing: 0.5px;
-        padding: 8px 0;
+        padding: 8px 2px 7px;
     }
-    .masthead .double-line span:nth-child(2) { order: 1; grid-column: 1 / -1; text-align: center; }
-    .masthead .double-line span:nth-child(1) { order: 2; }
-    .masthead .double-line span:nth-child(3) { order: 3; text-align: right; }
+    .masthead .double-line span:nth-child(2) {
+        grid-area: date;
+        text-align: center;
+        padding-bottom: 5px;
+        border-bottom: 1px dashed rgba(36, 31, 24, .22);
+    }
+    .masthead .double-line span:nth-child(1) { grid-area: left; text-align: left; }
+    .masthead .double-line span:nth-child(3) { grid-area: right; text-align: right; }
     .masthead .double-line span:nth-child(4) { display: none; }
 
     /* 节气尺：24 格压到一行之内 */
