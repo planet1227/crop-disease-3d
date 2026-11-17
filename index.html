@@ -1792,7 +1792,7 @@ body {
                     <span class="key-msg" id="keyMsg"></span>
                 </div>
                 <p class="key-hint" style="margin:14px 0 0;">
-                    申请地址：DeepSeek 密钥 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">点这里申请 →</a>；千问密钥 <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener">点这里申请 →</a>。<br>密钥只存在运行服务的这台电脑上，不会写进网页。
+                    申请地址：DeepSeek 密钥 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">点这里申请 →</a>；千问密钥 <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener">点这里申请 →</a>。<br>密钥只存在运行服务的这台电脑上，不会写进网页。电脑上用 127.0.0.1 打开能填，手机连同一个 WiFi、用手机浏览器打开本页也能填。
                 </p>
             </div>
             <p style="margin-top:44px; text-align:center; font-size:18px; color:#8B0000; letter-spacing:5px;">
@@ -2774,12 +2774,6 @@ setInterval(loadWeather, 10 * 60 * 1000);
         d = d || {};
         label(stateD, d.deepseek);
         label(stateQ, d.qwen);
-        if (d.local === false) {
-            elD.disabled = true;
-            elQ.disabled = true;
-            btn.disabled = true;
-            say('请在这台电脑上用 http://127.0.0.1 打开本页填写');
-        }
     }
 
     function refresh() {

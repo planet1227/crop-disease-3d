@@ -40,6 +40,7 @@ def _load_dotenv():
 _load_dotenv()
 
 # ========= 本机密钥：在「关于」页里填，存同目录 本机密钥.json，优先级高于 .env =========
+# 电脑和手机（同一 WiFi）都能填；只校验格式，不限制来源 IP
 KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "本机密钥.json")
 
 
@@ -89,8 +90,6 @@ async def api_keys_get(request: Request):
 @app.post("/api/keys")
 async def api_keys_set(data: dict, request: Request):
     global DEEPSEEK_API_KEY, DASHSCOPE_API_KEY
-    if not _is_local(request):
-        return JSONResponse({"ok": False, "msg": "密钥只能在这台电脑上填写，手机端不开放修改"}, status_code=403)
 
     ds = str(data.get("deepseek") or "").strip().strip('"').strip("'")
     qw = str(data.get("qwen") or "").strip().strip('"').strip("'")
