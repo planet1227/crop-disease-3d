@@ -2168,6 +2168,49 @@ body {
     border-radius: 12px;
 }
 
+/* ===== 各框底色分层（2026-11-17 第十五轮）=====
+   同族不同阶：整页只有一张纸，面板是各自的纸块。
+   实色不透明，不再透出 body 的纸纹；明度即层级：
+   问答最亮 → 结果/历史 → 天气 → 逐时 → 识别/上传 → 3D 最深 */
+:root {
+    --panel-ask: #F2E8D0;
+    --panel-result: #ECE0C4;
+    --panel-history: #EEE2C7;
+    --panel-weather: #EDE0C1;
+    --panel-hourly: #E8D9B8;
+    --panel-diagnose: #EADDBE;
+    --panel-upload: #E2D3AF;
+    --panel-stage: #DCCBA4;
+    --panel-key: #E7D8B7;
+    --panel-input: #F3E9D1;
+}
+
+/* 天气与逐时 */
+.news-grid { background: var(--panel-weather); }
+.hourly-section { background: var(--panel-hourly); }
+
+/* 病害识别与结果：同一张圆角纸版里的两种纸 */
+.main-left { background: var(--panel-diagnose); }
+.main-right { background: var(--panel-result); }
+
+/* 上传图版与历史 */
+.upload-area { background: var(--panel-upload); }
+.upload-area:hover { background: #E7D9B9; }
+.history-section { background: var(--panel-history); }
+
+/* 问答：最亮，长文阅读 */
+#pane-chat { background: var(--panel-ask); border-radius: 12px; padding: 12px 14px; }
+
+/* 3D 病相：外框中等、舞台最深，模型才立得住 */
+.bx3d-box { background: var(--panel-key); }
+.bx3d-stage { background: var(--panel-stage); }
+
+/* 关于页密钥 */
+.key-panel { background: var(--panel-key); }
+
+/* 输入控件统一最亮纸色，在哪块纸面上都读得清 */
+.crop-select, .chat-input-area input, .key-row input { background-color: var(--panel-input); }
+
 </style>
 </head>
 <body>
