@@ -2151,6 +2151,23 @@ body {
 .history-item .t { display: block; font-size: 11px; color: var(--ink-soft); margin-top: 4px; letter-spacing: 1px; }
 .history-item:hover .q { color: var(--red); }
 
+/* ===== 框底与纸面融合（2026-11-17 第十四轮）=====
+   病相立体图、作物下拉原来是实色/半白底，像另贴了一张纸；
+   改成低透明纸色，让底下的纸色、噪点、纤维透过来，看着是一整纸 */
+.crop-select { background-color: rgba(255, 252, 242, .18); }
+
+.bx3d-box {
+    background: rgba(255, 252, 242, .10);
+    border: 1px solid rgba(26, 20, 13, .32);
+    border-radius: var(--r-md);
+}
+.bx3d-head { border-bottom: 1px solid rgba(26, 20, 13, .30); }
+.bx3d-stage {
+    background: radial-gradient(circle at 50% 42%, rgba(248, 241, 223, .45) 0%, rgba(238, 227, 201, .28) 68%, rgba(226, 214, 184, .20) 100%);
+    border: 1px solid rgba(26, 20, 13, .24);
+    border-radius: 12px;
+}
+
 </style>
 </head>
 <body>
